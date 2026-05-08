@@ -18,8 +18,8 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   @override
   void dispose() {
@@ -36,7 +36,7 @@ class _OtpScreenState extends State<OtpScreen> {
       _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(int index, String value) {
-    if (value.length == 1 && index < 3) {
+    if (value.length == 1 && index < 5) {
       _focusNodes[index + 1].requestFocus();
     } else if (value.isEmpty && index > 0) {
       _focusNodes[index - 1].requestFocus();
@@ -49,7 +49,7 @@ class _OtpScreenState extends State<OtpScreen> {
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) {
         final cubit = context.read<OnboardingCubit>();
-        final canVerify = _otp.length == 4 && !state.isLoading;
+        final canVerify = _otp.length == 6 && !state.isLoading;
 
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -81,8 +81,8 @@ class _OtpScreenState extends State<OtpScreen> {
                       children: [
                         TextSpan(
                           text: state.language.name == 'moore'
-                              ? 'Code SMS yii ne '
-                              : 'Code envoye par SMS au ',
+                              ? 'Code WhatsApp yii ne '
+                              : 'Code envoye par WhatsApp au ',
                         ),
                         TextSpan(
                           text: state.fullPhone,
@@ -100,7 +100,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   // OTP boxes
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (i) {
+                    children: List.generate(6, (i) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),
@@ -155,28 +155,6 @@ class _OtpScreenState extends State<OtpScreen> {
                   ],
 
                   const SizedBox(height: AppSpacing.xl),
-
-                  // Hint for mock
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusSm),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline,
-                            color: AppColors.primary, size: 16),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Code de demonstration : 1234',
-                          style: AppTypography.caption
-                              .copyWith(color: AppColors.primary),
-                        ),
-                      ],
-                    ),
-                  ),
 
                   const Spacer(),
 

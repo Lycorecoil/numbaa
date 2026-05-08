@@ -1,12 +1,15 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
 import { env } from './env';
 
+const isServerless = process.env.VERCEL === '1';
+
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  max: 10,
-  min: 2,
-  idleTimeoutMillis: 30000,
+  max: isServerless ? 1 : 10,
+  min: 0,
+  idleTimeoutMillis: isServerless ? 5000 : 30000,
   connectionTimeoutMillis: 10000,
+  ssl: isServerless ? { rejectUnauthorized: false } : undefined,
 });
 
 pool.on('error', (err) => {

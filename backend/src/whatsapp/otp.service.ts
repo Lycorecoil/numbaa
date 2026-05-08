@@ -27,6 +27,10 @@ export async function generateAndSendOtp(phone: string): Promise<void> {
   const code = generateCode();
   await redis.set(key, JSON.stringify({ code, attempts: 0 }), 'EX', OTP_TTL);
 
+  if (env.BYPASS_WHATSAPP) {
+    console.log(`[OTP] ${phone} → ${code}`);
+    return;
+  }
   await sendWhatsAppMessage(
     phone,
     `🔐 Votre code NUMBAA : *${code}*\n\nValable 5 minutes. Ne le partagez jamais.`

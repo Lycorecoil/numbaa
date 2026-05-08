@@ -41,6 +41,7 @@ export const env = {
 
   VERCEL_TOKEN: optionalEnv('VERCEL_TOKEN', ''),
   VERCEL_TEAM_ID: optionalEnv('VERCEL_TEAM_ID', ''),
+  BYPASS_WHATSAPP: optionalEnv('BYPASS_WHATSAPP', 'false') === 'true',
 
   UPLOAD_DIR: optionalEnv('UPLOAD_DIR', 'uploads'),
   MAX_FILE_SIZE: parseInt(optionalEnv('MAX_FILE_SIZE', '5242880'), 10),

@@ -53,8 +53,8 @@ app.use('/v1/auth/request-otp', authLimiter);
 app.use(morgan(env.isProduction ? 'combined' : 'dev'));
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Fichiers uploadés
 app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR)));

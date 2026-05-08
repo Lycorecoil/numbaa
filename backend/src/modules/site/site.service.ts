@@ -29,6 +29,19 @@ async function loadSections(siteId: string): Promise<SectionRow[]> {
   return r.rows;
 }
 
+export async function assertSiteOwner(siteId: string, userId: string): Promise<SiteRow> {
+  const r = await query<SiteRow>(
+    `SELECT s.* FROM sites s
+     JOIN businesses b ON b.id = s.business_id
+     WHERE s.id = $1 AND b.user_id = $2`,
+    [siteId, userId]
+  );
+  if (!r.rows[0]) {
+    throw Object.assign(new Error('Site introuvable ou accès non autorisé.'), { status: 404 });
+  }
+  return r.rows[0];
+}
+
 export async function getByBusinessId(businessId: string): Promise<SiteRow | null> {
   const r = await query<SiteRow>('SELECT * FROM sites WHERE business_id = $1', [businessId]);
   if (!r.rows[0]) return null;

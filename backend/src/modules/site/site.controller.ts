@@ -28,7 +28,14 @@ function formatSite(s: svc.SiteRow) {
 
 export async function getByBusiness(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const site = await svc.getByBusinessId(req.params['businessId']!);
+    const businessId = req.params['businessId']!;
+    // Verify the business belongs to the authenticated user
+    const biz = await getByUserId(req.user!.id);
+    if (!biz || biz.id !== businessId) {
+      res.status(403).json({ success: false, message: 'Accès non autorisé.' });
+      return;
+    }
+    const site = await svc.getByBusinessId(businessId);
     if (!site) { res.status(404).json({ success: false, message: 'Aucun site trouvé.' }); return; }
     res.json({ success: true, site: formatSite(site) });
   } catch (err) { next(err); }
@@ -44,8 +51,10 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const siteId = req.params['siteId']!;
+    await svc.assertSiteOwner(siteId, req.user!.id);
     const { sections, primaryColor } = req.body;
-    const site = await svc.updateSite(req.params['siteId']!, { sections, primaryColor });
+    const site = await svc.updateSite(siteId, { sections, primaryColor });
     if (!site) { res.status(404).json({ success: false, message: 'Site introuvable.' }); return; }
     res.json({ success: true, site: formatSite(site) });
   } catch (err) { next(err); }
@@ -55,10 +64,8 @@ export async function publish(req: Request, res: Response, next: NextFunction): 
   try {
     const siteId = req.params['siteId']!;
 
-    // Charger site + business + produits
-    const siteResult = await query('SELECT * FROM sites WHERE id = $1', [siteId]);
-    if (!siteResult.rows[0]) { res.status(404).json({ success: false, message: 'Site introuvable.' }); return; }
-    const siteRow = siteResult.rows[0] as svc.SiteRow;
+    // Verify ownership and load site
+    const siteRow = await svc.assertSiteOwner(siteId, req.user!.id);
 
     const business = await getByUserId(req.user!.id);
     if (!business) { res.status(404).json({ success: false, message: 'Business introuvable.' }); return; }

@@ -5,7 +5,7 @@ const OTP_TTL = 300; // 5 minutes
 const MAX_ATTEMPTS = 3;
 
 function generateCode(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function otpKey(phone: string): string {
@@ -33,28 +33,36 @@ export async function generateAndSendOtp(phone: string): Promise<void> {
   );
 }
 
-export async function verifyOtp(phone: string, inputCode: string): Promise<void> {
-  const key = otpKey(phone);
-  const raw = await redis.get(key);
+// Lua script : atomic read → check attempts → increment or delete
+// Returns: "expired" | "too_many" | "wrong" | "ok"
+const verifyScript = `
+local raw = redis.call('GET', KEYS[1])
+if not raw then return 'expired' end
+local data = cjson.decode(raw)
+if data.attempts >= tonumber(ARGV[2]) then
+  redis.call('DEL', KEYS[1])
+  return 'too_many'
+end
+if data.code ~= ARGV[1] then
+  data.attempts = data.attempts + 1
+  local ttl = redis.call('TTL', KEYS[1])
+  redis.call('SET', KEYS[1], cjson.encode(data), 'EX', ttl > 0 and ttl or 1)
+  return 'wrong'
+end
+redis.call('DEL', KEYS[1])
+return 'ok'
+`;
 
-  if (!raw) {
+export async function verifyOtp(phone: string, inputCode: string): Promise<void> {
+  const result = await redis.eval(verifyScript, 1, otpKey(phone), inputCode, MAX_ATTEMPTS.toString()) as string;
+
+  if (result === 'expired') {
     throw Object.assign(new Error('Code expiré ou non demandé. Demande un nouveau code.'), { status: 400 });
   }
-
-  const data: { code: string; attempts: number } = JSON.parse(raw);
-
-  if (data.attempts >= MAX_ATTEMPTS) {
-    await redis.del(key);
+  if (result === 'too_many') {
     throw Object.assign(new Error('Trop de tentatives incorrectes. Demande un nouveau code.'), { status: 429 });
   }
-
-  if (data.code !== inputCode) {
-    data.attempts += 1;
-    const ttl = await redis.ttl(key);
-    await redis.set(key, JSON.stringify(data), 'EX', ttl > 0 ? ttl : 1);
+  if (result === 'wrong') {
     throw Object.assign(new Error('Code incorrect.'), { status: 400 });
   }
-
-  // Code valide — consommer
-  await redis.del(key);
 }

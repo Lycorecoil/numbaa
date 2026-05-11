@@ -125,7 +125,12 @@ class EditorScreen extends StatelessWidget {
                       child: NumbiaButton(
                         label: 'Apercu',
                         icon: Icons.visibility_outlined,
-                        onPressed: () => context.push('/preview/$siteId'),
+                        onPressed: () async {
+                          await context.read<EditorCubit>().saveSite();
+                          if (context.mounted) {
+                            context.push('/preview/$siteId');
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -160,28 +165,52 @@ class EditorScreen extends StatelessWidget {
   void _showAddSectionSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSpacing.radiusLg),
         ),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.4,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (_, scrollCtrl) => Column(
           children: [
-            Text('Ajouter une section', style: AppTypography.h2),
-            const SizedBox(height: AppSpacing.md),
-            ...SectionType.values.map((type) => ListTile(
-                  leading: Icon(_iconForSection(type),
-                      color: AppColors.primary),
-                  title: Text(type.label, style: AppTypography.body),
-                  onTap: () {
-                    context.read<EditorCubit>().addSection(type);
-                    Navigator.of(context).pop();
-                  },
-                )),
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Ajouter une section', style: AppTypography.h2),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                controller: scrollCtrl,
+                children: SectionType.values
+                    .map((type) => ListTile(
+                          leading: Icon(_iconForSection(type),
+                              color: AppColors.primary),
+                          title: Text(type.label, style: AppTypography.body),
+                          onTap: () {
+                            context.read<EditorCubit>().addSection(type);
+                            Navigator.of(context).pop();
+                          },
+                        ))
+                    .toList(),
+              ),
+            ),
           ],
         ),
       ),

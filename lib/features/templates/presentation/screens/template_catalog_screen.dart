@@ -23,7 +23,7 @@ class TemplateCatalogScreen extends StatelessWidget {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/website-type'),
+              onPressed: () => context.pop(),
             ),
             title: Text(
               'Templates ${state.selectedWebsiteType?.label ?? ""}',
@@ -60,7 +60,7 @@ class TemplateCatalogScreen extends StatelessWidget {
                       child: NumbiaButton(
                         label: 'Utiliser ce template',
                         onPressed: state.selectedTemplate != null
-                            ? () => context.go(
+                            ? () => context.push(
                                 '/template-preview?type=${state.selectedWebsiteType!.name}&templateId=${state.selectedTemplate!.id}')
                             : null,
                       ),

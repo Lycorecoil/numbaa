@@ -37,7 +37,7 @@ class _PublishScreenState extends State<PublishScreen> {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/preview/${widget.siteId}'),
+              onPressed: () => context.pop(),
             ),
             title: const Text('Publication'),
           ),

@@ -79,7 +79,7 @@ class LanguageScreen extends StatelessWidget {
                     label: state.language == AppLanguage.french
                         ? 'Continuer'
                         : 'Siga',
-                    onPressed: () => context.go('/phone'),
+                    onPressed: () => context.push('/phone'),
                   ),
                   const SizedBox(height: AppSpacing.md),
                 ],

@@ -52,7 +52,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: AppColors.neutralDark),
-              onPressed: () => context.go('/language'),
+              onPressed: () => context.pop(),
             ),
           ),
           body: SafeArea(
@@ -176,7 +176,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
                         ? () async {
                             final ok = await cubit.sendOtp();
                             if (ok && context.mounted) {
-                              context.go('/otp');
+                              context.push('/otp');
                             }
                           }
                         : null,

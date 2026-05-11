@@ -447,7 +447,7 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
               NumbiaButton(
                 label: 'Commencer maintenant',
                 icon: Icons.rocket_launch_outlined,
-                onPressed: () => context.go('/website-type'),
+                onPressed: () => context.push('/website-type'),
               ),
             ],
           ),

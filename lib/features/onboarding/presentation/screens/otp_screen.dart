@@ -58,7 +58,7 @@ class _OtpScreenState extends State<OtpScreen> {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: AppColors.neutralDark),
-              onPressed: () => context.go('/phone'),
+              onPressed: () => context.pop(),
             ),
           ),
           body: SafeArea(

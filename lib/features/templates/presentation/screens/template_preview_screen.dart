@@ -36,8 +36,7 @@ class TemplatePreviewScreen extends StatelessWidget {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go(
-                  '/templates?type=${state.selectedWebsiteType?.name ?? 'showcase'}'),
+              onPressed: () => context.pop(),
             ),
             title: Text(template.name),
           ),

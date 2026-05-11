@@ -29,7 +29,7 @@ class OnboardingScreen extends StatelessWidget {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: AppColors.neutralDark),
-              onPressed: () => context.go('/otp'),
+              onPressed: () => context.pop(),
             ),
             title: Text(
               state.language.name == 'moore'

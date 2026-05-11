@@ -36,7 +36,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             foregroundColor: Colors.white,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/editor/${widget.siteId}'),
+              onPressed: () => context.pop(),
             ),
             title: const Text('Apercu'),
             actions: [
@@ -92,7 +92,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 child: NumbiaButton(
                   label: 'Publier le site',
                   icon: Icons.rocket_launch_outlined,
-                  onPressed: () => context.go('/publish/${widget.siteId}'),
+                  onPressed: () => context.push('/publish/${widget.siteId}'),
                 ),
               ),
             ],

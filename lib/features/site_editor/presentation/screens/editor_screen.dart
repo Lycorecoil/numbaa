@@ -43,7 +43,7 @@ class EditorScreen extends StatelessWidget {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/dashboard'),
+              onPressed: () => context.pop(),
             ),
             title: const Text('Editeur de site'),
             actions: [
@@ -96,7 +96,7 @@ class EditorScreen extends StatelessWidget {
                     label: 'Gerer les produits (${state.products.length})',
                     variant: NumbiaButtonVariant.secondary,
                     icon: Icons.inventory_2_outlined,
-                    onPressed: () => context.go('/editor/$siteId/products'),
+                    onPressed: () => context.push('/editor/$siteId/products'),
                   ),
                 ),
 
@@ -120,7 +120,7 @@ class EditorScreen extends StatelessWidget {
                       child: NumbiaButton(
                         label: 'Apercu',
                         icon: Icons.visibility_outlined,
-                        onPressed: () => context.go('/preview/$siteId'),
+                        onPressed: () => context.push('/preview/$siteId'),
                       ),
                     ),
                   ],

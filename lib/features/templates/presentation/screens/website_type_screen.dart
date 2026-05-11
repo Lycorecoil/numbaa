@@ -23,7 +23,7 @@ class WebsiteTypeScreen extends StatelessWidget {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/dashboard'),
+              onPressed: () => context.pop(),
             ),
             title: const Text('Type de site'),
           ),
@@ -155,7 +155,7 @@ class WebsiteTypeScreen extends StatelessWidget {
                   NumbiaButton(
                     label: 'Choisir un template',
                     onPressed: state.selectedWebsiteType != null
-                        ? () => context.go(
+                        ? () => context.push(
                             '/templates?type=${state.selectedWebsiteType!.name}')
                         : null,
                   ),

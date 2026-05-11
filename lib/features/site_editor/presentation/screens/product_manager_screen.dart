@@ -27,7 +27,7 @@ class ProductManagerScreen extends StatelessWidget {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/editor/$siteId'),
+              onPressed: () => context.pop(),
             ),
             title: const Text('Mes produits'),
           ),

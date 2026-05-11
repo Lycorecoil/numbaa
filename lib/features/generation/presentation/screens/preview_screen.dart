@@ -347,7 +347,7 @@ class _WebsitePreview extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Cree avec NUMBIA par Orange',
+                'Cree avec NUMBIA',
                 style: AppTypography.caption.copyWith(color: Colors.white38),
               ),
             ],

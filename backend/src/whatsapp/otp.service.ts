@@ -1,5 +1,5 @@
 import { redis } from '../config/redis';
-import { sendWhatsAppMessage } from './baileys.client';
+import { env } from '../config/env';
 
 const OTP_TTL = 300; // 5 minutes
 const MAX_ATTEMPTS = 3;
@@ -31,6 +31,7 @@ export async function generateAndSendOtp(phone: string): Promise<void> {
     console.log(`[OTP] ${phone} → ${code}`);
     return;
   }
+  const { sendWhatsAppMessage } = await import('./baileys.client');
   await sendWhatsAppMessage(
     phone,
     `🔐 Votre code NUMBAA : *${code}*\n\nValable 5 minutes. Ne le partagez jamais.`

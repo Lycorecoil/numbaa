@@ -31,6 +31,27 @@ router.post(
   ctrl.verifyOtp
 );
 
+// POST /v1/auth/login (phone + password)
+router.post(
+  '/login',
+  [
+    body('phone').trim().notEmpty().withMessage('Téléphone requis.'),
+    body('password').notEmpty().withMessage('Mot de passe requis.'),
+  ],
+  ctrl.loginWithPassword
+);
+
+// POST /v1/auth/set-password
+router.post(
+  '/set-password',
+  authenticate,
+  [
+    body('password')
+      .isLength({ min: 6 }).withMessage('Le mot de passe doit faire au moins 6 caractères.'),
+  ],
+  ctrl.setPassword
+);
+
 // POST /v1/auth/logout
 router.post('/logout', authenticate, ctrl.logout);
 

@@ -11,7 +11,9 @@
     "db:seed": "ts-node src/db/seeds/templates.seed.ts"
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@whiskeysockets/baileys": "^6.7.18",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",

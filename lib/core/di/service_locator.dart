@@ -10,7 +10,9 @@ import '../../domain/repositories/template_repository.dart';
 import '../../domain/repositories/site_repository.dart';
 // Auth use cases
 import '../../domain/usecases/auth/check_auth_status_use_case.dart';
+import '../../domain/usecases/auth/login_with_password_use_case.dart';
 import '../../domain/usecases/auth/request_otp_use_case.dart';
+import '../../domain/usecases/auth/set_password_use_case.dart';
 import '../../domain/usecases/auth/verify_otp_use_case.dart';
 import '../../domain/usecases/auth/logout_use_case.dart';
 import '../../domain/usecases/auth/mark_onboarding_complete_use_case.dart';
@@ -46,7 +48,9 @@ void setupServiceLocator() {
 
   // Auth use cases
   getIt.registerLazySingleton(() => CheckAuthStatusUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => LoginWithPasswordUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton(() => RequestOtpUseCase(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => SetPasswordUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton(() => VerifyOtpUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton(() => LogoutUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton(() => MarkOnboardingCompleteUseCase(getIt<AuthRepository>()));

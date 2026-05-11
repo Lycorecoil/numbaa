@@ -14,14 +14,32 @@ class HttpAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserEntity> verifyOtp(String phone, String code, AppLanguage language) async {
+  Future<OtpVerificationResult> verifyOtp(String phone, String code, AppLanguage language) async {
     final res = await _api.post('/auth/verify-otp', {
       'phone': phone,
       'code': code,
       'language': language.name,
     }, auth: false);
     await _api.saveToken(res['token'] as String);
+    return OtpVerificationResult(
+      user: _userFromMap(res['user'] as Map<String, dynamic>),
+      needsPassword: res['needsPassword'] as bool? ?? false,
+    );
+  }
+
+  @override
+  Future<UserEntity> loginWithPassword(String phone, String password) async {
+    final res = await _api.post('/auth/login', {
+      'phone': phone,
+      'password': password,
+    }, auth: false);
+    await _api.saveToken(res['token'] as String);
     return _userFromMap(res['user'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> setPassword(String password) async {
+    await _api.post('/auth/set-password', {'password': password});
   }
 
   @override

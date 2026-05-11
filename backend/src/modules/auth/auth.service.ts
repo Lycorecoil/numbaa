@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { query } from '../../config/database';
 import { redis } from '../../config/redis';
 import { generateToken } from '../../middlewares/auth.middleware';
@@ -11,6 +12,7 @@ export interface UserRow {
   name: string;
   language: string;
   has_completed_onboarding: boolean;
+  password_hash: string | null;
   created_at: Date;
 }
 
@@ -23,7 +25,7 @@ export async function verifyOtpAndLogin(
   phone: string,
   code: string,
   language: string
-): Promise<{ token: string; user: UserRow }> {
+): Promise<{ token: string; user: UserRow; needsPassword: boolean }> {
   // Valide le code (lève une erreur si invalide)
   await verifyOtp(phone, code);
 
@@ -56,7 +58,33 @@ export async function verifyOtpAndLogin(
     [user.id]
   );
 
+  return { token, user, needsPassword: !user.password_hash };
+}
+
+export async function loginWithPassword(
+  phone: string,
+  password: string
+): Promise<{ token: string; user: UserRow }> {
+  const result = await query<UserRow>('SELECT * FROM users WHERE phone = $1', [phone]);
+  const user = result.rows[0];
+  if (!user || !user.password_hash) {
+    throw Object.assign(
+      new Error('Compte introuvable ou mot de passe non défini. Utilise le code OTP.'),
+      { status: 401 }
+    );
+  }
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) {
+    throw Object.assign(new Error('Mot de passe incorrect.'), { status: 401 });
+  }
+  const token = generateToken({ id: user.id, phone: user.phone });
+  await redis.set(`session:${user.id}`, 'valid', 'EX', SESSION_TTL);
   return { token, user };
+}
+
+export async function setPassword(userId: string, password: string): Promise<void> {
+  const hash = await bcrypt.hash(password, 10);
+  await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, userId]);
 }
 
 export async function logout(userId: string): Promise<void> {

@@ -36,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
             context.go('/setup');
           }
         } else if (state.status == AuthStatus.unauthenticated) {
-          context.go('/language');
+          context.go('/login');
         }
       },
       child: const Scaffold(

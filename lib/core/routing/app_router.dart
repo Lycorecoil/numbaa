@@ -16,6 +16,8 @@ import '../../domain/usecases/site/update_product_use_case.dart';
 import '../../domain/usecases/site/update_site_use_case.dart';
 import '../../domain/usecases/template/get_templates_by_type_use_case.dart';
 import '../../features/auth/presentation/cubits/auth_cubit.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/set_password_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dashboard/presentation/cubits/dashboard_cubit.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -58,6 +60,18 @@ GoRouter buildRouter(AuthCubit authCubit) {
       GoRoute(
         path: '/',
         builder: (context, state) => const SplashScreen(),
+      ),
+
+      // --- Login (returning users) ---
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+
+      // --- Set password (after first OTP verification) ---
+      GoRoute(
+        path: '/set-password',
+        builder: (context, state) => const SetPasswordScreen(),
       ),
 
       // --- Onboarding flow (language → phone → otp → setup) ---

@@ -61,10 +61,14 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   Future<UserEntity?> verifyOtp(String code) async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
-      final user = await _verifyOtp(state.fullPhone, code, state.language);
-      _pendingUser = user;
-      emit(state.copyWith(isLoading: false, otpVerified: true));
-      return user;
+      final result = await _verifyOtp(state.fullPhone, code, state.language);
+      _pendingUser = result.user;
+      emit(state.copyWith(
+        isLoading: false,
+        otpVerified: true,
+        needsPassword: result.needsPassword,
+      ));
+      return result.user;
     } catch (e) {
       emit(state.copyWith(
         isLoading: false,

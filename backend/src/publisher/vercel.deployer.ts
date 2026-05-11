@@ -1,11 +1,21 @@
 import https from 'https';
 import { env } from '../config/env';
 
-export async function deployToVercel(businessId: string, html: string): Promise<string> {
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40);
+}
+
+export async function deployToVercel(businessId: string, businessName: string, html: string): Promise<string> {
   const encoded = Buffer.from(html).toString('base64');
+  const projectName = `numbaa-${slugify(businessName)}-${businessId.slice(0, 8)}`;
 
   const body = JSON.stringify({
-    name: `numbaa-${businessId}`,
+    name: projectName,
     files: [{ file: 'index.html', data: encoded, encoding: 'base64' }],
     projectSettings: { framework: null },
     target: 'production',
@@ -33,12 +43,13 @@ export async function deployToVercel(businessId: string, html: string): Promise<
               reject(new Error(`Vercel API error ${res.statusCode}: ${json.error?.message ?? data}`));
               return;
             }
-            const url: string = json.alias?.[0] ?? json.url;
-            if (!url) {
-              reject(new Error('Vercel response missing deployment URL'));
+            // json.url is the unique deployment URL, always reliable
+            const rawUrl: string = json.url;
+            if (!rawUrl) {
+              reject(new Error(`Vercel response missing url. Response: ${data}`));
               return;
             }
-            resolve(url.startsWith('http') ? url : `https://${url}`);
+            resolve(rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`);
           } catch {
             reject(new Error(`Failed to parse Vercel response: ${data}`));
           }

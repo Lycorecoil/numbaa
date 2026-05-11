@@ -14,6 +14,7 @@ class OnboardingState extends Equatable {
   final bool isLoading;
   final String? error;
   final String? debugCode;
+  final bool needsPassword;
 
   const OnboardingState({
     this.language = AppLanguage.french,
@@ -28,6 +29,7 @@ class OnboardingState extends Equatable {
     this.isLoading = false,
     this.error,
     this.debugCode,
+    this.needsPassword = false,
   });
 
   OnboardingState copyWith({
@@ -43,6 +45,7 @@ class OnboardingState extends Equatable {
     bool? isLoading,
     String? error,
     String? debugCode,
+    bool? needsPassword,
   }) {
     return OnboardingState(
       language: language ?? this.language,
@@ -57,6 +60,7 @@ class OnboardingState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       debugCode: debugCode,
+      needsPassword: needsPassword ?? this.needsPassword,
     );
   }
 
@@ -76,5 +80,6 @@ class OnboardingState extends Equatable {
         isLoading,
         error,
         debugCode,
+        needsPassword,
       ];
 }

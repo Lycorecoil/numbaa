@@ -28,7 +28,33 @@ export async function verifyOtp(req: Request, res: Response, next: NextFunction)
   }
   try {
     const { phone, code, language } = req.body;
-    const { token, user } = await authService.verifyOtpAndLogin(phone, code, language ?? 'french');
+    const { token, user, needsPassword } = await authService.verifyOtpAndLogin(phone, code, language ?? 'french');
+    res.json({
+      success: true,
+      token,
+      needsPassword,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        language: user.language,
+        hasCompletedOnboarding: user.has_completed_onboarding,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function loginWithPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(422).json({ success: false, errors: errors.array() });
+    return;
+  }
+  try {
+    const { phone, password } = req.body;
+    const { token, user } = await authService.loginWithPassword(phone, password);
     res.json({
       success: true,
       token,
@@ -40,6 +66,20 @@ export async function verifyOtp(req: Request, res: Response, next: NextFunction)
         hasCompletedOnboarding: user.has_completed_onboarding,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function setPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(422).json({ success: false, errors: errors.array() });
+    return;
+  }
+  try {
+    await authService.setPassword(req.user!.id, req.body.password);
+    res.json({ success: true, message: 'Mot de passe défini.' });
   } catch (err) {
     next(err);
   }

@@ -21,7 +21,7 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserEntity> verifyOtp(
+  Future<OtpVerificationResult> verifyOtp(
       String phone, String code, AppLanguage language) async {
     if (code != AppConstants.mockOtpCode) {
       throw Exception('Code incorrect. Veuillez reessayer.');
@@ -38,16 +38,18 @@ class MockAuthRepository implements AuthRepository {
       if (userData['phone'] == phone) {
         final userId = userData['id'] as String;
         await prefs.setString(_currentUserKey, userId);
-        return UserEntity(
-          id: userId,
-          phone: phone,
-          name: userData['name'] ?? '',
-          language: AppLanguage.values.firstWhere(
-            (l) => l.name == (userData['language'] ?? 'french'),
-            orElse: () => AppLanguage.french,
+        return OtpVerificationResult(
+          user: UserEntity(
+            id: userId,
+            phone: phone,
+            name: userData['name'] ?? '',
+            language: AppLanguage.values.firstWhere(
+              (l) => l.name == (userData['language'] ?? 'french'),
+              orElse: () => AppLanguage.french,
+            ),
+            hasCompletedOnboarding: userData['hasCompletedOnboarding'] ?? false,
           ),
-          hasCompletedOnboarding:
-              userData['hasCompletedOnboarding'] ?? false,
+          needsPassword: false,
         );
       }
     }
@@ -65,7 +67,10 @@ class MockAuthRepository implements AuthRepository {
     await prefs.setString(_usersKey, jsonEncode(users));
     await prefs.setString(_currentUserKey, userId);
 
-    return UserEntity(id: userId, phone: phone, language: language);
+    return OtpVerificationResult(
+      user: UserEntity(id: userId, phone: phone, language: language),
+      needsPassword: false,
+    );
   }
 
   @override
@@ -98,6 +103,14 @@ class MockAuthRepository implements AuthRepository {
       hasCompletedOnboarding: userData['hasCompletedOnboarding'] ?? false,
     );
   }
+
+  @override
+  Future<UserEntity> loginWithPassword(String phone, String password) async {
+    throw Exception('Login par mot de passe non disponible en mode mock.');
+  }
+
+  @override
+  Future<void> setPassword(String password) async {}
 
   @override
   Future<void> markOnboardingComplete(String userId) async {

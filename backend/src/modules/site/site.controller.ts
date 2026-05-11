@@ -81,7 +81,7 @@ export async function publish(req: Request, res: Response, next: NextFunction): 
     });
 
     // Déployer sur Vercel
-    const deployedUrl = await deployToVercel(business.id, html);
+    const deployedUrl = await deployToVercel(business.id, business.name, html);
 
     // Mettre à jour le statut
     const updatedSite = await updateSite(siteId, {

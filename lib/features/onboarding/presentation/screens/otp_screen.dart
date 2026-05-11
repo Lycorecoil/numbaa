@@ -103,9 +103,9 @@ class _OtpScreenState extends State<OtpScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -196,7 +196,10 @@ class _OtpScreenState extends State<OtpScreen> {
                             final user = await cubit.verifyOtp(_otp);
                             if (user != null && context.mounted) {
                               context.read<AuthCubit>().setUser(user);
-                              if (user.hasCompletedOnboarding) {
+                              final needs = context.read<OnboardingCubit>().state.needsPassword;
+                              if (needs) {
+                                context.go('/set-password');
+                              } else if (user.hasCompletedOnboarding) {
                                 context.go('/dashboard');
                               } else {
                                 context.go('/setup');

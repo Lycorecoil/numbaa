@@ -48,6 +48,11 @@ class EditorScreen extends StatelessWidget {
             title: const Text('Editeur de site'),
             actions: [
               IconButton(
+                icon: const Icon(Icons.style_outlined),
+                tooltip: 'Changer de template',
+                onPressed: () => context.push('/website-type?siteId=$siteId'),
+              ),
+              IconButton(
                 icon: const Icon(Icons.save_outlined),
                 onPressed: () {
                   context.read<EditorCubit>().saveSite();

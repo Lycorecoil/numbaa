@@ -12,7 +12,8 @@ import '../cubits/template_state.dart';
 
 /// Screen where users choose between showcase and e-commerce website.
 class WebsiteTypeScreen extends StatelessWidget {
-  const WebsiteTypeScreen({super.key});
+  final String? siteId;
+  const WebsiteTypeScreen({super.key, this.siteId});
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +157,7 @@ class WebsiteTypeScreen extends StatelessWidget {
                     label: 'Choisir un template',
                     onPressed: state.selectedWebsiteType != null
                         ? () => context.push(
-                            '/templates?type=${state.selectedWebsiteType!.name}')
+                            '/templates?type=${state.selectedWebsiteType!.name}${siteId != null ? '&siteId=$siteId' : ''}')
                         : null,
                   ),
                 ],

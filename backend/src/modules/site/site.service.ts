@@ -80,15 +80,20 @@ export async function updateSite(siteId: string, data: {
   primaryColor?: string;
   status?: string;
   publishedUrl?: string;
+  templateId?: string;
+  websiteType?: string;
 }): Promise<SiteRow | null> {
   await query(
     `UPDATE sites SET
        primary_color = COALESCE($2, primary_color),
        status = COALESCE($3, status),
        published_url = COALESCE($4, published_url),
+       template_id = COALESCE($5, template_id),
+       website_type = COALESCE($6, website_type),
        updated_at = NOW()
      WHERE id = $1`,
-    [siteId, data.primaryColor ?? null, data.status ?? null, data.publishedUrl ?? null]
+    [siteId, data.primaryColor ?? null, data.status ?? null, data.publishedUrl ?? null,
+     data.templateId ?? null, data.websiteType ?? null]
   );
 
   if (data.sections) {

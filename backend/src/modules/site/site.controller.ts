@@ -53,8 +53,8 @@ export async function update(req: Request, res: Response, next: NextFunction): P
   try {
     const siteId = req.params['siteId']!;
     await svc.assertSiteOwner(siteId, req.user!.id);
-    const { sections, primaryColor } = req.body;
-    const site = await svc.updateSite(siteId, { sections, primaryColor });
+    const { sections, primaryColor, templateId, websiteType } = req.body;
+    const site = await svc.updateSite(siteId, { sections, primaryColor, templateId, websiteType });
     if (!site) { res.status(404).json({ success: false, message: 'Site introuvable.' }); return; }
     res.json({ success: true, site: formatSite(site) });
   } catch (err) { next(err); }

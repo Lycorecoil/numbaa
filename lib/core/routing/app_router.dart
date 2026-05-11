@@ -152,9 +152,10 @@ GoRouter buildRouter(AuthCubit authCubit) {
       GoRoute(
         path: '/website-type',
         builder: (context, state) {
+          final siteId = state.uri.queryParameters['siteId'];
           return BlocProvider(
             create: (_) => TemplateCubit(getIt<GetTemplatesByTypeUseCase>()),
-            child: const WebsiteTypeScreen(),
+            child: WebsiteTypeScreen(siteId: siteId),
           );
         },
       ),
@@ -164,6 +165,7 @@ GoRouter buildRouter(AuthCubit authCubit) {
         path: '/templates',
         builder: (context, state) {
           final typeName = state.uri.queryParameters['type'] ?? 'showcase';
+          final siteId = state.uri.queryParameters['siteId'];
           final websiteType = WebsiteType.values.firstWhere(
             (t) => t.name == typeName,
             orElse: () => WebsiteType.showcase,
@@ -171,7 +173,7 @@ GoRouter buildRouter(AuthCubit authCubit) {
           return BlocProvider(
             create: (_) => TemplateCubit(getIt<GetTemplatesByTypeUseCase>())
               ..init(websiteType),
-            child: const TemplateCatalogScreen(),
+            child: TemplateCatalogScreen(siteId: siteId),
           );
         },
       ),
@@ -180,6 +182,7 @@ GoRouter buildRouter(AuthCubit authCubit) {
         builder: (context, state) {
           final typeName = state.uri.queryParameters['type'] ?? 'showcase';
           final templateId = state.uri.queryParameters['templateId'] ?? '';
+          final siteId = state.uri.queryParameters['siteId'];
           final websiteType = WebsiteType.values.firstWhere(
             (t) => t.name == typeName,
             orElse: () => WebsiteType.showcase,
@@ -187,7 +190,7 @@ GoRouter buildRouter(AuthCubit authCubit) {
           return BlocProvider(
             create: (_) => TemplateCubit(getIt<GetTemplatesByTypeUseCase>())
               ..initWithTemplate(websiteType, templateId),
-            child: const TemplatePreviewScreen(),
+            child: TemplatePreviewScreen(siteId: siteId),
           );
         },
       ),

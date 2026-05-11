@@ -12,7 +12,8 @@ import '../cubits/template_state.dart';
 
 /// Template catalog screen — browse and select a template.
 class TemplateCatalogScreen extends StatelessWidget {
-  const TemplateCatalogScreen({super.key});
+  final String? siteId;
+  const TemplateCatalogScreen({super.key, this.siteId});
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +62,7 @@ class TemplateCatalogScreen extends StatelessWidget {
                         label: 'Utiliser ce template',
                         onPressed: state.selectedTemplate != null
                             ? () => context.push(
-                                '/template-preview?type=${state.selectedWebsiteType!.name}&templateId=${state.selectedTemplate!.id}')
+                                '/template-preview?type=${state.selectedWebsiteType!.name}&templateId=${state.selectedTemplate!.id}${siteId != null ? '&siteId=$siteId' : ''}')
                             : null,
                       ),
                     ),

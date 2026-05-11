@@ -7,15 +7,19 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../domain/usecases/business/get_business_use_case.dart';
+import 'package:uuid/uuid.dart';
+import '../../../../domain/entities/site_entity.dart';
 import '../../../../domain/usecases/site/create_site_use_case.dart';
+import '../../../../domain/usecases/site/update_site_use_case.dart';
 import '../../../../shared/widgets/numbia_button.dart';
 import '../../../auth/presentation/cubits/auth_cubit.dart';
 import '../cubits/template_cubit.dart';
 import '../cubits/template_state.dart';
 
-/// Full preview of the selected template before creating the site.
+/// Full preview of the selected template before creating (or changing) the site.
 class TemplatePreviewScreen extends StatelessWidget {
-  const TemplatePreviewScreen({super.key});
+  final String? siteId;
+  const TemplatePreviewScreen({super.key, this.siteId});
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +70,12 @@ class TemplatePreviewScreen extends StatelessWidget {
                   ),
                 ),
                 child: NumbiaButton(
-                  label: 'Creer mon site avec ce template',
-                  onPressed: () => _createSite(context, state),
+                  label: siteId != null
+                      ? 'Appliquer ce template'
+                      : 'Creer mon site avec ce template',
+                  onPressed: () => siteId != null
+                      ? _changeTemplate(context, state, siteId!)
+                      : _createSite(context, state),
                 ),
               ),
             ],
@@ -75,6 +83,34 @@ class TemplatePreviewScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _changeTemplate(BuildContext context, TemplateState state, String siteId) async {
+    final template = state.selectedTemplate!;
+    final websiteType = state.selectedWebsiteType!;
+    final uuid = const Uuid();
+    final sections = template.defaultSections
+        .asMap()
+        .entries
+        .map((e) => SiteSection(
+              id: uuid.v4(),
+              type: e.value,
+              title: e.value.label,
+              content: '',
+              order: e.key,
+            ))
+        .toList();
+
+    final updated = await getIt<UpdateSiteUseCase>().call(SiteEntity(
+      id: siteId,
+      businessId: '',
+      templateId: template.id,
+      websiteType: websiteType,
+      sections: sections,
+    ));
+    if (context.mounted) {
+      context.go('/editor/${updated.id}');
+    }
   }
 
   Future<void> _createSite(BuildContext context, TemplateState state) async {

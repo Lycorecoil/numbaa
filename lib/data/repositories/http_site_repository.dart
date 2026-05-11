@@ -96,6 +96,7 @@ class HttpSiteRepository implements SiteRepository {
           orElse: () => SiteStatus.draft,
         ),
         primaryColor: m['primaryColor'] as String?,
+        publishedUrl: m['publishedUrl'] as String?,
         createdAt: DateTime.parse(m['createdAt'] as String),
         sections: (m['sections'] as List<dynamic>? ?? [])
             .map((s) => SiteSection(

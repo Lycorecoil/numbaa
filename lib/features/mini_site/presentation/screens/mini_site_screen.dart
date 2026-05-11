@@ -91,8 +91,8 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
 
   Widget _buildExistingSite(BuildContext context, DashboardState state) {
     final siteName = state.business?.name ?? 'Mon site';
-    final slug = siteName.toLowerCase().replaceAll(' ', '-');
-    final mockUrl = 'numbaa.app/$slug';
+    final publishedUrl = state.site?.publishedUrl;
+    final displayUrl = publishedUrl ?? 'Non publie';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +152,7 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
                                   const SizedBox(width: 3),
                                   Expanded(
                                     child: Text(
-                                      mockUrl,
+                                      displayUrl,
                                       style: AppTypography.caption
                                           .copyWith(fontSize: 10),
                                       overflow: TextOverflow.ellipsis,
@@ -219,28 +219,34 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
                               .copyWith(fontWeight: FontWeight.w600),
                         ),
                         GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(
-                                ClipboardData(text: 'https://$mockUrl'));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Lien copie !'),
-                                  duration: Duration(seconds: 2)),
-                            );
-                          },
+                          onTap: publishedUrl != null
+                              ? () {
+                                  Clipboard.setData(
+                                      ClipboardData(text: publishedUrl));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Lien copie !'),
+                                        duration: Duration(seconds: 2)),
+                                  );
+                                }
+                              : null,
                           child: Row(
                             children: [
                               Flexible(
                                 child: Text(
-                                  mockUrl,
+                                  displayUrl,
                                   style: AppTypography.caption.copyWith(
-                                      color: AppColors.primary),
+                                      color: publishedUrl != null
+                                          ? AppColors.primary
+                                          : AppColors.neutralMid),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.copy_outlined,
-                                  size: 12, color: AppColors.primary),
+                              if (publishedUrl != null) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.copy_outlined,
+                                    size: 12, color: AppColors.primary),
+                              ],
                             ],
                           ),
                         ),
@@ -311,42 +317,6 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
 
         const SizedBox(height: AppSpacing.lg),
 
-        // Stats
-        Text('Statistiques', style: AppTypography.h3),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                icon: Icons.visibility_outlined,
-                value: '127',
-                label: 'Vues\ncette semaine',
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.touch_app_outlined,
-                value: '34',
-                label: 'Clics\ncontact',
-                color: AppColors.success,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.share_outlined,
-                value: '12',
-                label: 'Partages',
-                color: AppColors.purple,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: AppSpacing.lg),
-
         // Share card
         NumbiaCard(
           child: Column(
@@ -394,13 +364,15 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
                     label: 'Copier',
                     color: AppColors.primary,
                     onTap: () {
-                      Clipboard.setData(
-                          ClipboardData(text: 'https://$mockUrl'));
+                      if (publishedUrl != null) {
+                        Clipboard.setData(ClipboardData(text: publishedUrl));
+                      }
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Lien copie dans le presse-papiers'),
-                            duration: Duration(seconds: 2)),
+                        SnackBar(
+                            content: Text(publishedUrl != null
+                                ? 'Lien copie dans le presse-papiers'
+                                : 'Publiez votre site pour obtenir un lien'),
+                            duration: const Duration(seconds: 2)),
                       );
                     },
                   ),
@@ -553,45 +525,6 @@ class _DotIndicator extends StatelessWidget {
       width: 10,
       height: 10,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 4),
-          Text(value, style: AppTypography.h3.copyWith(color: color)),
-          Text(
-            label,
-            style: AppTypography.caption
-                .copyWith(color: AppColors.neutralMid),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
     );
   }
 }

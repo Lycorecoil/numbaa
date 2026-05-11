@@ -46,6 +46,7 @@ class SiteEntity extends Equatable {
   final List<SiteSection> sections;
   final SiteStatus status;
   final String? primaryColor;
+  final String? publishedUrl;
   final DateTime createdAt;
 
   const SiteEntity({
@@ -56,6 +57,7 @@ class SiteEntity extends Equatable {
     this.sections = const [],
     this.status = SiteStatus.draft,
     this.primaryColor,
+    this.publishedUrl,
     required this.createdAt,
   });
 
@@ -67,6 +69,7 @@ class SiteEntity extends Equatable {
     List<SiteSection>? sections,
     SiteStatus? status,
     String? primaryColor,
+    String? publishedUrl,
     DateTime? createdAt,
   }) {
     return SiteEntity(
@@ -77,6 +80,7 @@ class SiteEntity extends Equatable {
       sections: sections ?? this.sections,
       status: status ?? this.status,
       primaryColor: primaryColor ?? this.primaryColor,
+      publishedUrl: publishedUrl ?? this.publishedUrl,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -90,6 +94,7 @@ class SiteEntity extends Equatable {
         sections,
         status,
         primaryColor,
+        publishedUrl,
         createdAt,
       ];
 }

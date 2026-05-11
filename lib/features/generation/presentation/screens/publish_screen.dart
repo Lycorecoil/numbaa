@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/constants/enums.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -27,6 +25,7 @@ enum _PublishStage { summary, publishing, success, error }
 class _PublishScreenState extends State<PublishScreen> {
   _PublishStage _stage = _PublishStage.summary;
   String? _error;
+  String? _publishedUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -102,57 +101,6 @@ class _PublishScreenState extends State<PublishScreen> {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
-
-        // Mock URL preview
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.primaryLight,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.link, color: AppColors.primary, size: 20),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'https://${AppConstants.mockDeploymentDomain}/mon-site',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: AppSpacing.md),
-
-        // Deployment note
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.neutralLight,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline,
-                  color: AppColors.neutralMid, size: 18),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'Deploiement simule sur Vercel. A terme, deploiement possible sur Orange Cloud ou hebergement interne.',
-                  style: AppTypography.caption,
-                ),
-              ),
-            ],
-          ),
-        ),
-
         const Spacer(),
 
         NumbiaButton(
@@ -202,22 +150,44 @@ class _PublishScreenState extends State<PublishScreen> {
             'Votre site est maintenant en ligne.',
             style: AppTypography.bodySmall,
           ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            ),
-            child: Text(
-              'https://${AppConstants.mockDeploymentDomain}/mon-site',
-              style: AppTypography.body.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
+          if (_publishedUrl != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lien copie !'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _publishedUrl!,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    const Icon(Icons.copy_outlined,
+                        size: 16, color: AppColors.primary),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           NumbiaButton(
             label: 'Retour au tableau de bord',
@@ -263,16 +233,14 @@ class _PublishScreenState extends State<PublishScreen> {
     setState(() => _stage = _PublishStage.publishing);
 
     try {
-      await getIt<PublishSiteUseCase>().call(widget.siteId);
+      final updatedSite = await getIt<PublishSiteUseCase>().call(widget.siteId);
 
       if (mounted) {
-        final updatedSite = cubit.state.site?.copyWith(
-          status: SiteStatus.published,
-        );
-        if (updatedSite != null) {
-          cubit.loadSiteEntity(updatedSite);
-        }
-        setState(() => _stage = _PublishStage.success);
+        cubit.loadSiteEntity(updatedSite);
+        setState(() {
+          _stage = _PublishStage.success;
+          _publishedUrl = updatedSite.publishedUrl;
+        });
       }
     } catch (e) {
       if (mounted) {

@@ -33,15 +33,11 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> loadSite(String siteId) async {
     emit(state.copyWith(status: EditorStatus.loading));
-    try {
-      // Site entity is provided via loadSiteEntity by the loader widgets.
-      emit(state.copyWith(status: EditorStatus.loaded));
-    } catch (e) {
-      emit(state.copyWith(
-        status: EditorStatus.error,
-        error: e.toString(),
-      ));
-    }
+    // Site entity is provided via loadSiteEntity by _EditorLoader.
+  }
+
+  void setError(String message) {
+    emit(state.copyWith(status: EditorStatus.error, error: message));
   }
 
   void loadSiteEntity(SiteEntity site) {

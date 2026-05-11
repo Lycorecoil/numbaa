@@ -311,6 +311,14 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: AppSpacing.sm),
+              NumbiaButton(
+                label: 'Changer de template',
+                variant: NumbiaButtonVariant.secondary,
+                icon: Icons.style_outlined,
+                onPressed: () =>
+                    context.push('/website-type?siteId=${state.site!.id}'),
+              ),
             ],
           ),
         ),

@@ -297,10 +297,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTap: () => context.go('/commercialisation'),
         ),
         _QuickActionCard(
-          icon: Icons.language_outlined,
-          label: 'Mon mini site',
+          icon: state.site != null
+              ? Icons.edit_outlined
+              : Icons.add_circle_outline,
+          label: state.site != null ? 'Modifier le site' : 'Creer mon site',
           color: AppColors.primary,
-          onTap: () => context.go('/mini-site'),
+          onTap: () {
+            if (state.site != null) {
+              context.push('/editor/${state.site!.id}');
+            } else {
+              context.push('/website-type');
+            }
+          },
         ),
         _QuickActionCard(
           icon: Icons.headset_mic_outlined,

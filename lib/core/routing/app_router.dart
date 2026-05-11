@@ -309,12 +309,21 @@ class _EditorLoaderState extends State<_EditorLoader> {
 
   Future<void> _loadSite() async {
     final user = context.read<AuthCubit>().state.user;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) context.read<EditorCubit>().setError('Utilisateur non connecte');
+      return;
+    }
     final business = await getIt<GetBusinessUseCase>().call(user.id);
-    if (business == null) return;
+    if (business == null) {
+      if (mounted) context.read<EditorCubit>().setError('Business introuvable');
+      return;
+    }
     final site = await getIt<GetSiteUseCase>().call(business.id);
-    if (site != null && mounted) {
+    if (!mounted) return;
+    if (site != null) {
       context.read<EditorCubit>().loadSiteEntity(site);
+    } else {
+      context.read<EditorCubit>().setError('Site introuvable');
     }
   }
 
@@ -345,6 +354,8 @@ class _ProductManagerLoaderState extends State<_ProductManagerLoader> {
     final site = await getIt<GetSiteUseCase>().call(business.id);
     if (site != null && mounted) {
       context.read<EditorCubit>().loadSiteEntity(site);
+    } else if (mounted) {
+      context.read<EditorCubit>().setError('Site introuvable');
     }
   }
 
@@ -376,6 +387,8 @@ class _PreviewLoaderState extends State<_PreviewLoader> {
     final site = await getIt<GetSiteUseCase>().call(business.id);
     if (site != null && mounted) {
       context.read<EditorCubit>().loadSiteEntity(site);
+    } else if (mounted) {
+      context.read<EditorCubit>().setError('Site introuvable');
     }
   }
 
@@ -406,6 +419,8 @@ class _PublishLoaderState extends State<_PublishLoader> {
     final site = await getIt<GetSiteUseCase>().call(business.id);
     if (site != null && mounted) {
       context.read<EditorCubit>().loadSiteEntity(site);
+    } else if (mounted) {
+      context.read<EditorCubit>().setError('Site introuvable');
     }
   }
 

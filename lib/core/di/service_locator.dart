@@ -31,7 +31,7 @@ import '../../domain/usecases/template/get_templates_by_type_use_case.dart';
 
 final getIt = GetIt.instance;
 
-const String apiBaseUrl = 'http://10.0.2.2:3000/v1'; // Android emulator → localhost
+const String apiBaseUrl = 'https://numbaa.vercel.app/v1';
 
 /// Register all dependencies. Call once at app startup.
 void setupServiceLocator() {

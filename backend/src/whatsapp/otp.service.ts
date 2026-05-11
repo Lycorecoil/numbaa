@@ -5,7 +5,7 @@ const OTP_TTL = 300; // 5 minutes
 const MAX_ATTEMPTS = 3;
 
 function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 function otpKey(phone: string): string {

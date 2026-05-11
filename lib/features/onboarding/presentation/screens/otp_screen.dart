@@ -18,8 +18,8 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+      List.generate(4, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
 
   @override
   void dispose() {
@@ -36,7 +36,7 @@ class _OtpScreenState extends State<OtpScreen> {
       _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(int index, String value) {
-    if (value.length == 1 && index < 5) {
+    if (value.length == 1 && index < 3) {
       _focusNodes[index + 1].requestFocus();
     } else if (value.isEmpty && index > 0) {
       _focusNodes[index - 1].requestFocus();
@@ -49,7 +49,7 @@ class _OtpScreenState extends State<OtpScreen> {
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) {
         final cubit = context.read<OnboardingCubit>();
-        final canVerify = _otp.length == 6 && !state.isLoading;
+        final canVerify = _otp.length == 4 && !state.isLoading;
 
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -100,7 +100,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   // OTP boxes
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(6, (i) {
+                    children: List.generate(4, (i) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),

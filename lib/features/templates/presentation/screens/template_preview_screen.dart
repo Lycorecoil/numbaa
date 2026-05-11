@@ -107,6 +107,7 @@ class TemplatePreviewScreen extends StatelessWidget {
       templateId: template.id,
       websiteType: websiteType,
       sections: sections,
+      createdAt: DateTime.now(),
     ));
     if (context.mounted) {
       context.go('/editor/${updated.id}');

@@ -45,8 +45,8 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   Future<bool> sendOtp() async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
-      await _requestOtp(state.fullPhone);
-      emit(state.copyWith(isLoading: false, otpSent: true));
+      final debugCode = await _requestOtp(state.fullPhone);
+      emit(state.copyWith(isLoading: false, otpSent: true, debugCode: debugCode));
       return true;
     } catch (e) {
       emit(state.copyWith(

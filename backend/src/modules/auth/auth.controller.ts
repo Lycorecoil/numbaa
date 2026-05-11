@@ -9,8 +9,12 @@ export async function requestOtp(req: Request, res: Response, next: NextFunction
     return;
   }
   try {
-    await authService.requestOtp(req.body.phone);
-    res.json({ success: true, message: 'Code OTP envoyé via WhatsApp.' });
+    const { debugCode } = await authService.requestOtp(req.body.phone);
+    res.json({
+      success: true,
+      message: 'Code OTP envoyé via WhatsApp.',
+      ...(debugCode !== undefined && { debugCode }),
+    });
   } catch (err) {
     next(err);
   }

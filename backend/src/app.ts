@@ -12,6 +12,9 @@ import fs from 'fs';
 
 const app = express();
 
+// Vercel et tous les reverse proxies envoient X-Forwarded-For
+app.set('trust proxy', 1);
+
 // Créer le dossier uploads si nécessaire (ignoré en serverless)
 try { if (!fs.existsSync(env.UPLOAD_DIR)) fs.mkdirSync(env.UPLOAD_DIR, { recursive: true }); } catch { /* read-only fs on serverless */ }
 

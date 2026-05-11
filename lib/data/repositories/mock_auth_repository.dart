@@ -15,10 +15,9 @@ class MockAuthRepository implements AuthRepository {
   final _uuid = const Uuid();
 
   @override
-  Future<void> requestOtp(String phone) async {
-    // In a real app, this would call an SMS API.
-    // Mock: always succeeds instantly.
+  Future<String?> requestOtp(String phone) async {
     await Future.delayed(const Duration(milliseconds: 500));
+    return null;
   }
 
   @override

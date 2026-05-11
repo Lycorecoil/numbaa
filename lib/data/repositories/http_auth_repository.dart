@@ -8,8 +8,9 @@ class HttpAuthRepository implements AuthRepository {
   HttpAuthRepository(this._api);
 
   @override
-  Future<void> requestOtp(String phone) async {
-    await _api.post('/auth/request-otp', {'phone': phone}, auth: false);
+  Future<String?> requestOtp(String phone) async {
+    final res = await _api.post('/auth/request-otp', {'phone': phone}, auth: false);
+    return res['debugCode'] as String?;
   }
 
   @override

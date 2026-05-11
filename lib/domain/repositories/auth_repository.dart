@@ -4,7 +4,8 @@ import '../../core/constants/enums.dart';
 /// Contract for phone-based authentication operations.
 abstract class AuthRepository {
   /// Send OTP to the given phone number.
-  Future<void> requestOtp(String phone);
+  /// Returns the debug code when the server is in bypass mode (testing only).
+  Future<String?> requestOtp(String phone);
 
   /// Verify OTP and return the user (created or found).
   Future<UserEntity> verifyOtp(String phone, String code, AppLanguage language);

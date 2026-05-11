@@ -12,7 +12,7 @@ function otpKey(phone: string): string {
   return `otp:${phone}`;
 }
 
-export async function generateAndSendOtp(phone: string): Promise<void> {
+export async function generateAndSendOtp(phone: string): Promise<string | undefined> {
   const key = otpKey(phone);
 
   // Empêcher le renvoi trop rapide (TTL > 240s = moins de 60s écoulées)
@@ -29,7 +29,7 @@ export async function generateAndSendOtp(phone: string): Promise<void> {
 
   if (env.BYPASS_WHATSAPP) {
     console.log(`[OTP] ${phone} → ${code}`);
-    return;
+    return code;
   }
   const { sendWhatsAppMessage } = await import('./baileys.client');
   await sendWhatsAppMessage(

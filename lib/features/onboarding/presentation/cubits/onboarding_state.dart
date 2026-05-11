@@ -13,6 +13,7 @@ class OnboardingState extends Equatable {
   final String whatsapp;
   final bool isLoading;
   final String? error;
+  final String? debugCode;
 
   const OnboardingState({
     this.language = AppLanguage.french,
@@ -26,6 +27,7 @@ class OnboardingState extends Equatable {
     this.whatsapp = '',
     this.isLoading = false,
     this.error,
+    this.debugCode,
   });
 
   OnboardingState copyWith({
@@ -40,6 +42,7 @@ class OnboardingState extends Equatable {
     String? whatsapp,
     bool? isLoading,
     String? error,
+    String? debugCode,
   }) {
     return OnboardingState(
       language: language ?? this.language,
@@ -53,6 +56,7 @@ class OnboardingState extends Equatable {
       whatsapp: whatsapp ?? this.whatsapp,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      debugCode: debugCode,
     );
   }
 
@@ -71,5 +75,6 @@ class OnboardingState extends Equatable {
         whatsapp,
         isLoading,
         error,
+        debugCode,
       ];
 }

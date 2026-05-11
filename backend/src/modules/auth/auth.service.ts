@@ -14,8 +14,9 @@ export interface UserRow {
   created_at: Date;
 }
 
-export async function requestOtp(phone: string): Promise<void> {
-  await generateAndSendOtp(phone);
+export async function requestOtp(phone: string): Promise<{ debugCode?: string }> {
+  const debugCode = await generateAndSendOtp(phone);
+  return { debugCode };
 }
 
 export async function verifyOtpAndLogin(

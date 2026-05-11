@@ -68,10 +68,39 @@ class EditorScreen extends StatelessWidget {
           ),
           body: Column(
             children: [
+              if (site.sections.length > 1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.swap_vert,
+                          size: 14, color: AppColors.neutralMid),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Maintenez une section pour la déplacer',
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.neutralMid),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: ReorderableListView.builder(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   itemCount: site.sections.length,
+                  proxyDecorator: (child, index, animation) {
+                    return AnimatedBuilder(
+                      animation: animation,
+                      builder: (_, __) => Material(
+                        elevation: 8,
+                        shadowColor: AppColors.primary.withValues(alpha: 0.25),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusMd),
+                        child: Opacity(opacity: 0.95, child: child),
+                      ),
+                    );
+                  },
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex--;
                     context
@@ -259,7 +288,7 @@ class _SectionTile extends StatelessWidget {
       child: NumbiaCard(
         child: Row(
           children: [
-            const Icon(Icons.drag_handle, color: AppColors.neutralMid),
+            const Icon(Icons.drag_handle, color: AppColors.primary, size: 26),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(

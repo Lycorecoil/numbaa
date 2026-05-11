@@ -18,8 +18,6 @@ class MiniSiteScreen extends StatefulWidget {
 }
 
 class _MiniSiteScreenState extends State<MiniSiteScreen> {
-  bool _isPublished = false;
-
   @override
   void initState() {
     super.initState();
@@ -205,84 +203,47 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
 
               const SizedBox(height: AppSpacing.md),
 
-              // Site name + url + toggle
-              Row(
+              // Site name + url
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Text(
+                    siteName,
+                    style: AppTypography.body
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: publishedUrl != null
+                        ? () {
+                            Clipboard.setData(
+                                ClipboardData(text: publishedUrl));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Lien copie !'),
+                                  duration: Duration(seconds: 2)),
+                            );
+                          }
+                        : null,
+                    child: Row(
                       children: [
-                        Text(
-                          siteName,
-                          style: AppTypography.body
-                              .copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        GestureDetector(
-                          onTap: publishedUrl != null
-                              ? () {
-                                  Clipboard.setData(
-                                      ClipboardData(text: publishedUrl));
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Lien copie !'),
-                                        duration: Duration(seconds: 2)),
-                                  );
-                                }
-                              : null,
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  displayUrl,
-                                  style: AppTypography.caption.copyWith(
-                                      color: publishedUrl != null
-                                          ? AppColors.primary
-                                          : AppColors.neutralMid),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (publishedUrl != null) ...[
-                                const SizedBox(width: 4),
-                                const Icon(Icons.copy_outlined,
-                                    size: 12, color: AppColors.primary),
-                              ],
-                            ],
+                        Flexible(
+                          child: Text(
+                            displayUrl,
+                            style: AppTypography.caption.copyWith(
+                                color: publishedUrl != null
+                                    ? AppColors.primary
+                                    : AppColors.neutralMid),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (publishedUrl != null) ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.copy_outlined,
+                              size: 12, color: AppColors.primary),
+                        ],
                       ],
                     ),
-                  ),
-                  Column(
-                    children: [
-                      Switch(
-                        value: _isPublished,
-                        onChanged: (v) {
-                          setState(() => _isPublished = v);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(v
-                                  ? 'Site publie avec succes !'
-                                  : 'Site mis hors ligne'),
-                              backgroundColor: v
-                                  ? AppColors.success
-                                  : AppColors.neutralMid,
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        activeThumbColor: AppColors.success,
-                      ),
-                      Text(
-                        _isPublished ? 'En ligne' : 'Hors ligne',
-                        style: AppTypography.caption.copyWith(
-                          color: _isPublished
-                              ? AppColors.success
-                              : AppColors.neutralMid,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

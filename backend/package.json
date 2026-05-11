@@ -4,7 +4,7 @@
   "description": "Backend API pour NUMBAA — mini-sites pour PME d'Afrique de l'Ouest",
   "main": "dist/app.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/app.js",
     "db:migrate": "ts-node src/db/migrate.ts",

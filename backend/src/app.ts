@@ -10,14 +10,10 @@ import { env } from './config/env';
 import routes from './routes';
 import fs from 'fs';
 
-const isVercel = process.env.VERCEL === '1';
-
 const app = express();
 
-// Créer le dossier uploads si nécessaire (pas en serverless)
-if (!isVercel && !fs.existsSync(env.UPLOAD_DIR)) {
-  fs.mkdirSync(env.UPLOAD_DIR, { recursive: true });
-}
+// Créer le dossier uploads si nécessaire (ignoré en serverless)
+try { if (!fs.existsSync(env.UPLOAD_DIR)) fs.mkdirSync(env.UPLOAD_DIR, { recursive: true }); } catch { /* read-only fs on serverless */ }
 
 // Sécurité
 app.use(helmet());
@@ -85,22 +81,5 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     ...(env.isDevelopment && { stack: err.stack }),
   });
 });
-
-// Démarrage local uniquement (pas sur Vercel)
-if (!isVercel) {
-  const { initBaileysClient } = require('./whatsapp/baileys.client');
-  const start = async (): Promise<void> => {
-    await connectDatabase();
-    await connectRedis();
-    if (!env.BYPASS_WHATSAPP) await initBaileysClient();
-    app.listen(env.PORT, () => {
-      console.log(`\n🚀 NUMBAA Backend démarré sur le port ${env.PORT} [${env.NODE_ENV}]\n`);
-    });
-  };
-  start().catch((err) => {
-    console.error('Échec du démarrage:', err);
-    process.exit(1);
-  });
-}
 
 export default app;

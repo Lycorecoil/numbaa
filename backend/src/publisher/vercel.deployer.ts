@@ -43,8 +43,11 @@ export async function deployToVercel(businessId: string, businessName: string, h
               reject(new Error(`Vercel API error ${res.statusCode}: ${json.error?.message ?? data}`));
               return;
             }
-            // json.url is the unique deployment URL, always reliable
-            const rawUrl: string = json.url;
+            // Prefer the clean production alias (e.g. numbaa-xxx.vercel.app)
+            // over the per-deployment URL that includes a hash and account slug.
+            const aliases: string[] = json.alias ?? [];
+            const cleanAlias = aliases.find((a: string) => a.endsWith('.vercel.app') && !a.includes('now.sh'));
+            const rawUrl: string = cleanAlias ?? json.url;
             if (!rawUrl) {
               reject(new Error(`Vercel response missing url. Response: ${data}`));
               return;

@@ -59,6 +59,8 @@ return 'ok'
 `;
 
 export async function verifyOtp(phone: string, inputCode: string): Promise<void> {
+  if (env.BYPASS_WHATSAPP && inputCode === '1234') return;
+
   const result = await redis.eval(verifyScript, 1, otpKey(phone), inputCode, MAX_ATTEMPTS.toString()) as string;
 
   if (result === 'expired') {

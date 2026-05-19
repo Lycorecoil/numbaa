@@ -5,6 +5,7 @@ import { deployToVercel } from '../../publisher/vercel.deployer';
 import { updateSite } from './site.service';
 import { getByUserId } from '../business/business.service';
 import { query } from '../../config/database';
+import { ProductRow } from '../product/product.service';
 
 function formatSite(s: svc.SiteRow) {
   return {
@@ -51,7 +52,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const siteId = req.params['siteId']!;
+    const siteId = req.params['siteId'] as string;
     await svc.assertSiteOwner(siteId, req.user!.id);
     const { sections, primaryColor, templateId, websiteType } = req.body;
     const site = await svc.updateSite(siteId, { sections, primaryColor, templateId, websiteType });
@@ -62,7 +63,7 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 
 export async function publish(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const siteId = req.params['siteId']!;
+    const siteId = req.params['siteId'] as string;
 
     // Verify ownership and load site
     const siteRow = await svc.assertSiteOwner(siteId, req.user!.id);
@@ -77,7 +78,7 @@ export async function publish(req: Request, res: Response, next: NextFunction): 
     const html = buildHtml({
       site: { ...siteRow, sections: sectionsResult.rows as svc.SectionRow[] },
       business,
-      products: productsResult.rows,
+      products: productsResult.rows as unknown as ProductRow[],
     });
 
     // Déployer sur Vercel

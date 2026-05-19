@@ -23,7 +23,7 @@ export async function getAll(req: Request, res: Response, next: NextFunction): P
 
 export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const template = await svc.getTemplateById(req.params['id']!);
+    const template = await svc.getTemplateById(req.params['id'] as string);
     if (!template) { res.status(404).json({ success: false, message: 'Template introuvable.' }); return; }
     res.json({ success: true, template: formatTemplate(template) });
   } catch (err) { next(err); }

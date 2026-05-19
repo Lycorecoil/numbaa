@@ -17,7 +17,7 @@ function fmt(p: svc.ProductRow) {
 
 export async function getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const siteId = req.params['siteId']!;
+    const siteId = req.params['siteId'] as string;
     await assertSiteOwner(siteId, req.user!.id);
     const products = await svc.getAll(siteId);
     res.json({ success: true, products: products.map(fmt) });
@@ -26,7 +26,7 @@ export async function getAll(req: Request, res: Response, next: NextFunction): P
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const siteId = req.params['siteId']!;
+    const siteId = req.params['siteId'] as string;
     await assertSiteOwner(siteId, req.user!.id);
     const { name, description, price, category } = req.body;
     const product = await svc.create({
@@ -40,9 +40,9 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await assertSiteOwner(req.params['siteId']!, req.user!.id);
+    await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
     const { name, description, price, category } = req.body;
-    const product = await svc.update(req.params['productId']!, {
+    const product = await svc.update(req.params['productId'] as string, {
       name, description, price: price !== undefined ? Number(price) : undefined, category,
     });
     if (!product) { res.status(404).json({ success: false, message: 'Produit introuvable.' }); return; }
@@ -52,18 +52,18 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 
 export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await assertSiteOwner(req.params['siteId']!, req.user!.id);
-    await svc.remove(req.params['productId']!);
+    await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
+    await svc.remove(req.params['productId'] as string);
     res.json({ success: true });
   } catch (err) { next(err); }
 }
 
 export async function uploadImage(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await assertSiteOwner(req.params['siteId']!, req.user!.id);
+    await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
     if (!req.file) { res.status(400).json({ success: false, message: 'Aucun fichier fourni.' }); return; }
     const imageUrl = `/uploads/${path.basename(req.file.path)}`;
-    await svc.updateImage(req.params['productId']!, imageUrl);
+    await svc.updateImage(req.params['productId'] as string, imageUrl);
     res.json({ success: true, imageUrl });
   } catch (err) { next(err); }
 }

@@ -61,6 +61,15 @@ export async function update(req: Request, res: Response, next: NextFunction): P
   } catch (err) { next(err); }
 }
 
+export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const siteId = req.params['siteId'] as string;
+    await svc.assertSiteOwner(siteId, req.user!.id);
+    await svc.deleteSite(siteId);
+    res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
 export async function publish(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const siteId = req.params['siteId'] as string;

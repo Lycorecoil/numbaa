@@ -75,6 +75,11 @@ export async function create(data: {
   return site;
 }
 
+export async function deleteSite(siteId: string): Promise<void> {
+  await query('DELETE FROM site_sections WHERE site_id = $1', [siteId]);
+  await query('DELETE FROM sites WHERE id = $1', [siteId]);
+}
+
 export async function updateSite(siteId: string, data: {
   sections?: { id: string; type: string; title: string; content: string; order: number }[];
   primaryColor?: string;

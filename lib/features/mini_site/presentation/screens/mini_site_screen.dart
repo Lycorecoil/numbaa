@@ -280,6 +280,23 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
                 onPressed: () =>
                     context.push('/website-type?siteId=${state.site!.id}'),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                height: AppSpacing.buttonHeight,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                  label: Text('Supprimer le site',
+                    style: AppTypography.button.copyWith(color: AppColors.error)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.error),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                  ),
+                  onPressed: () => _confirmDelete(context, state),
+                ),
+              ),
             ],
           ),
         ),
@@ -358,6 +375,32 @@ class _MiniSiteScreenState extends State<MiniSiteScreen> {
         const SizedBox(height: AppSpacing.xl),
       ],
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, DashboardState state) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer le site ?'),
+        content: const Text(
+          'Cette action est irreversible. Le site sera supprime definitivement.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<DashboardCubit>().deleteSite(state.site!.id);
+    }
   }
 
   Widget _buildNoSite(BuildContext context) {

@@ -54,6 +54,7 @@ class TemplatePreviewScreen extends StatelessWidget {
                       return _MockSectionPreview(
                         sectionType: section,
                         accentColor: color,
+                        isEcommerce: state.selectedWebsiteType == WebsiteType.ecommerce,
                       );
                     }).toList(),
                   ),
@@ -141,10 +142,12 @@ class TemplatePreviewScreen extends StatelessWidget {
 class _MockSectionPreview extends StatelessWidget {
   final SectionType sectionType;
   final Color accentColor;
+  final bool isEcommerce;
 
   const _MockSectionPreview({
     required this.sectionType,
     required this.accentColor,
+    required this.isEcommerce,
   });
 
   @override
@@ -192,7 +195,7 @@ class _MockSectionPreview extends StatelessWidget {
   Color _bgColor() {
     switch (sectionType) {
       case SectionType.hero:
-        return accentColor.withValues(alpha: 0.05);
+        return isEcommerce ? accentColor : accentColor.withValues(alpha: 0.12);
       case SectionType.footer:
         return AppColors.neutralDark;
       default:
@@ -203,6 +206,16 @@ class _MockSectionPreview extends StatelessWidget {
   Widget _buildContent() {
     switch (sectionType) {
       case SectionType.hero:
+        final barColor = isEcommerce
+            ? Colors.white.withValues(alpha: 0.5)
+            : AppColors.neutralDark.withValues(alpha: 0.15);
+        final subBarColor = isEcommerce
+            ? Colors.white.withValues(alpha: 0.35)
+            : AppColors.neutralMid.withValues(alpha: 0.15);
+        final btnColor = isEcommerce
+            ? Colors.white.withValues(alpha: 0.9)
+            : accentColor;
+        final btnTextColor = isEcommerce ? accentColor : Colors.white;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -210,7 +223,7 @@ class _MockSectionPreview extends StatelessWidget {
               height: 20,
               width: 200,
               decoration: BoxDecoration(
-                color: AppColors.neutralDark.withValues(alpha: 0.15),
+                color: barColor,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -219,7 +232,7 @@ class _MockSectionPreview extends StatelessWidget {
               height: 14,
               width: 280,
               decoration: BoxDecoration(
-                color: AppColors.neutralMid.withValues(alpha: 0.15),
+                color: subBarColor,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -228,8 +241,17 @@ class _MockSectionPreview extends StatelessWidget {
               height: 36,
               width: 120,
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.3),
+                color: btnColor,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              alignment: Alignment.center,
+              child: Container(
+                height: 10,
+                width: 70,
+                decoration: BoxDecoration(
+                  color: btnTextColor.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
           ],

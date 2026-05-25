@@ -44,9 +44,17 @@ export function buildHtml({ site, business, products }: BuildInput): string {
     footer { background: #1a1a1a; color: #ccc; padding: 40px 20px; text-align: center; }
     footer a { color: var(--primary); text-decoration: none; }
     .testimonial { background: var(--primary-light); border-radius: 12px; padding: 20px; margin-bottom: 16px; font-style: italic; }
+    /* Showcase — refined, professional */
+    body.showcase h1, body.showcase h2 { font-family: Georgia, 'Times New Roman', serif; }
+    body.showcase .btn { border-radius: 4px; letter-spacing: .03em; }
+    /* Ecommerce — bold, full-color hero */
+    body.ecommerce .hero { background: var(--primary); }
+    body.ecommerce .hero h1 { color: #fff; }
+    body.ecommerce .hero p { color: rgba(255,255,255,0.85); }
+    body.ecommerce .btn { background: #fff; color: var(--primary); font-weight: 800; }
   </style>
 </head>
-<body>
+<body class="${site.website_type}">
 ${sectionsHtml}
 </body>
 </html>`;

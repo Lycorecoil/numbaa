@@ -12,5 +12,6 @@ abstract class SiteRepository {
   Future<List<ProductEntity>> getProducts(String siteId);
   Future<ProductEntity> addProduct(ProductEntity product);
   Future<ProductEntity> updateProduct(ProductEntity product);
+  Future<void> deleteSite(String siteId);
   Future<void> deleteProduct(String siteId, String productId);
 }

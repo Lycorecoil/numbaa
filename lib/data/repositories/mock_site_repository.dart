@@ -105,6 +105,13 @@ class MockSiteRepository implements SiteRepository {
   }
 
   @override
+  @override
+  Future<void> deleteSite(String siteId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_sitesKey);
+  }
+
+  @override
   Future<void> deleteProduct(String siteId, String productId) async {
     final prefs = await SharedPreferences.getInstance();
     final dataJson = prefs.getString(_productsKey);

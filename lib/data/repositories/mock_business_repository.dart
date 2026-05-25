@@ -45,6 +45,9 @@ class MockBusinessRepository implements BusinessRepository {
     return saveBusiness(business);
   }
 
+  @override
+  Future<String> uploadLogo(String filePath) async => filePath;
+
   Map<String, dynamic> _toMap(BusinessEntity b) => {
         'id': b.id,
         'userId': b.userId,

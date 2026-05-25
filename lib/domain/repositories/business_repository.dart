@@ -5,4 +5,5 @@ abstract class BusinessRepository {
   Future<BusinessEntity?> getBusiness(String userId);
   Future<BusinessEntity> saveBusiness(BusinessEntity business);
   Future<BusinessEntity> updateBusiness(BusinessEntity business);
+  Future<String> uploadLogo(String filePath);
 }

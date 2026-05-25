@@ -5,6 +5,7 @@ import '../../../../domain/usecases/auth/mark_onboarding_complete_use_case.dart'
 import '../../../../domain/usecases/auth/request_otp_use_case.dart';
 import '../../../../domain/usecases/auth/verify_otp_use_case.dart';
 import '../../../../domain/usecases/business/save_business_use_case.dart';
+import '../../../../domain/usecases/business/upload_logo_use_case.dart';
 import 'onboarding_state.dart';
 
 /// Manages the full onboarding flow:
@@ -13,6 +14,7 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   final RequestOtpUseCase _requestOtp;
   final VerifyOtpUseCase _verifyOtp;
   final SaveBusinessUseCase _saveBusiness;
+  final UploadLogoUseCase _uploadLogo;
   final MarkOnboardingCompleteUseCase _markOnboardingComplete;
 
   UserEntity? _pendingUser;
@@ -21,10 +23,12 @@ class OnboardingCubit extends Cubit<OnboardingState> {
     required RequestOtpUseCase requestOtp,
     required VerifyOtpUseCase verifyOtp,
     required SaveBusinessUseCase saveBusiness,
+    required UploadLogoUseCase uploadLogo,
     required MarkOnboardingCompleteUseCase markOnboardingComplete,
   })  : _requestOtp = requestOtp,
         _verifyOtp = verifyOtp,
         _saveBusiness = saveBusiness,
+        _uploadLogo = uploadLogo,
         _markOnboardingComplete = markOnboardingComplete,
         super(const OnboardingState());
 
@@ -108,9 +112,12 @@ class OnboardingCubit extends Cubit<OnboardingState> {
         userId: _pendingUser!.id,
         name: state.businessName.trim(),
         category: state.businessCategory!,
-        logoPath: state.logoPath,
+        logoPath: null,
         whatsapp: state.whatsapp,
       );
+      if (state.logoPath != null) {
+        await _uploadLogo(state.logoPath!);
+      }
       await _markOnboardingComplete(_pendingUser!.id);
 
       emit(state.copyWith(isLoading: false));

@@ -61,6 +61,16 @@ class ApiClient {
     return _parse(res);
   }
 
+  Future<Map<String, dynamic>> postFile(String path, String field, String filePath) async {
+    final token = await getToken();
+    final request = http.MultipartRequest('POST', _uri(path));
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath(field, filePath));
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
+    return _parse(res);
+  }
+
   Future<void> delete(String path) async {
     final res = await http.delete(_uri(path), headers: await _headers());
     if (res.statusCode >= 400) {

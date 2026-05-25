@@ -76,9 +76,7 @@ class LanguageScreen extends StatelessWidget {
                   const Spacer(),
 
                   NumbiaButton(
-                    label: state.language == AppLanguage.french
-                        ? 'Continuer'
-                        : 'Siga',
+                    label: 'Continuer',
                     onPressed: () => context.push('/phone'),
                   ),
                   const SizedBox(height: AppSpacing.md),

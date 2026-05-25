@@ -8,8 +8,11 @@ import '../../domain/usecases/auth/request_otp_use_case.dart';
 import '../../domain/usecases/auth/verify_otp_use_case.dart';
 import '../../domain/usecases/business/get_business_use_case.dart';
 import '../../domain/usecases/business/save_business_use_case.dart';
+import '../../domain/usecases/business/upload_logo_use_case.dart';
+import '../../domain/usecases/plan/get_user_plan_use_case.dart';
 import '../../domain/usecases/site/add_product_use_case.dart';
 import '../../domain/usecases/site/delete_product_use_case.dart';
+import '../../domain/usecases/site/delete_site_use_case.dart';
 import '../../domain/usecases/site/get_products_use_case.dart';
 import '../../domain/usecases/site/get_site_use_case.dart';
 import '../../domain/usecases/site/update_product_use_case.dart';
@@ -47,6 +50,7 @@ OnboardingCubit _buildOnboardingCubit() => OnboardingCubit(
       requestOtp: getIt<RequestOtpUseCase>(),
       verifyOtp: getIt<VerifyOtpUseCase>(),
       saveBusiness: getIt<SaveBusinessUseCase>(),
+      uploadLogo: getIt<UploadLogoUseCase>(),
       markOnboardingComplete: getIt<MarkOnboardingCompleteUseCase>(),
     );
 
@@ -113,6 +117,8 @@ GoRouter buildRouter(AuthCubit authCubit) {
                 create: (_) => DashboardCubit(
                   getBusiness: getIt<GetBusinessUseCase>(),
                   getSite: getIt<GetSiteUseCase>(),
+                  getUserPlan: getIt<GetUserPlanUseCase>(),
+                  deleteSite: getIt<DeleteSiteUseCase>(),
                   userId: user?.id ?? '',
                 ),
                 child: const DashboardScreen(),
@@ -135,6 +141,8 @@ GoRouter buildRouter(AuthCubit authCubit) {
                 create: (_) => DashboardCubit(
                   getBusiness: getIt<GetBusinessUseCase>(),
                   getSite: getIt<GetSiteUseCase>(),
+                  getUserPlan: getIt<GetUserPlanUseCase>(),
+                  deleteSite: getIt<DeleteSiteUseCase>(),
                   userId: user?.id ?? '',
                 ),
                 child: const MiniSiteScreen(),

@@ -61,6 +61,11 @@ class HttpSiteRepository implements SiteRepository {
   }
 
   @override
+  Future<void> deleteSite(String siteId) async {
+    await _api.delete('/sites/$siteId');
+  }
+
+  @override
   Future<void> deleteProduct(String siteId, String productId) async {
     await _api.delete('/sites/$siteId/products/$productId');
   }

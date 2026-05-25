@@ -43,6 +43,12 @@ class HttpBusinessRepository implements BusinessRepository {
         'socialLinkedin': b.socialLinks.linkedin,
       };
 
+  @override
+  Future<String> uploadLogo(String filePath) async {
+    final res = await _api.postFile('/business/logo', 'logo', filePath);
+    return res['logoUrl'] as String;
+  }
+
   BusinessEntity _fromMap(Map<String, dynamic> m) => BusinessEntity(
         id: m['id'] as String,
         userId: m['userId'] as String,

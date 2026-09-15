@@ -50,3 +50,5 @@ backend/.env
 backend/dist/
 backend/uploads/
 backend/whatsapp-session/
+.vercel
+.env*

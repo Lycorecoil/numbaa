@@ -108,7 +108,10 @@ REDIS_URL=redis://localhost:6379
 JWT_SECRET=<32 chars min>
 JWT_EXPIRY=7d
 VERCEL_TOKEN=<vercel api token>
-BLOB_READ_WRITE_TOKEN=<vercel blob rw token>
+# Pas de token a fournir : le store Blob est connecte au projet Vercel
+# (Storage > Projects > Connect to Project), qui injecte BLOB_STORE_ID +
+# VERCEL_OIDC_TOKEN automatiquement (auth OIDC, renouvelee toute seule).
+# En local : `vercel link` puis `vercel env pull .env`.
 MAX_FILE_SIZE=5242880
 PORT=3000
 ```
@@ -157,7 +160,7 @@ Au premier démarrage, Baileys affiche un QR code dans le terminal. Scanne-le av
    - Configurer les variables d'env en production
    - Remplacer `http://10.0.2.2:3000` par l'URL réelle dans `lib/core/di/service_locator.dart`
 
-2. ~~**Upload de fichiers en production**~~ — fait : logos et photos produit sont uploadés sur Vercel Blob (`backend/src/storage/blob.storage.ts`), `logo_url`/`image_url` stockent une URL absolue `https://*.public.blob.vercel-storage.com/...`. Nécessite que `BLOB_READ_WRITE_TOKEN` soit configuré (voir section env ci-dessus).
+2. ~~**Upload de fichiers en production**~~ — fait : logos et photos produit sont uploadés sur Vercel Blob (`backend/src/storage/blob.storage.ts`), `logo_url`/`image_url` stockent une URL absolue `https://*.public.blob.vercel-storage.com/...`. Nécessite que le store Blob soit connecté au projet Vercel (voir section env ci-dessus) — aucun code à changer, le SDK détecte l'auth OIDC tout seul.
 
 3. **Tests end-to-end** — scénario complet :
    - `requestOtp(phone)` → message WhatsApp reçu

@@ -6,352 +6,308 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../domain/entities/template_entity.dart';
 import '../../../../domain/usecases/business/get_business_use_case.dart';
-import 'package:uuid/uuid.dart';
-import '../../../../domain/entities/site_entity.dart';
-import '../../../../domain/usecases/site/create_site_use_case.dart';
-import '../../../../domain/usecases/site/update_site_use_case.dart';
+import '../../../../domain/usecases/site/get_site_use_case.dart';
 import '../../../../shared/widgets/numbia_button.dart';
+import '../../../../shared/widgets/site_preview_widget.dart';
 import '../../../auth/presentation/cubits/auth_cubit.dart';
+import '../../../site_editor/presentation/cubits/editor_cubit.dart';
+import '../../../site_editor/presentation/cubits/editor_state.dart';
 import '../cubits/template_cubit.dart';
 import '../cubits/template_state.dart';
+import 'template_catalog_screen.dart' show templateHeroTag;
 
-/// Full preview of the selected template before creating (or changing) the site.
-class TemplatePreviewScreen extends StatelessWidget {
+/// Fullscreen "live" template editor — opened by tapping a card in the
+/// template catalog (grows into this screen via a [Hero] transition tagged
+/// with [templateHeroTag]). Shows the real [SitePreviewWidget] rendering
+/// instead of a static mock, and lets the merchant edit it directly: tap
+/// any title/paragraph to edit it in place, long-press a section to drag
+/// it to a new position.
+///
+/// No site is created just from opening this screen. The very first real
+/// edit (text change or reorder) transparently creates the draft site
+/// (status [SiteStatus.draft]) via [EditorCubit.beginFromTemplate] /
+/// [EditorCubit.editSectionInline]; further edits autosave with a short
+/// debounce. "Terminer" always finalizes the selection (creating the site
+/// even if nothing was edited, like the old "Choisir ce modele" action)
+/// and continues to the classic editor for detailed work (products, etc.).
+class TemplatePreviewScreen extends StatefulWidget {
   final String? siteId;
   const TemplatePreviewScreen({super.key, this.siteId});
 
   @override
+  State<TemplatePreviewScreen> createState() => _TemplatePreviewScreenState();
+}
+
+class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
+  bool _initiated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Covers the common case: the catalog passed the template via `extra`,
+    // so TemplateCubit.selectDirect already ran synchronously before this
+    // widget even built — nothing to wait for.
+    _maybeStart(context.read<TemplateCubit>().state);
+  }
+
+  void _maybeStart(TemplateState templateState) {
+    if (_initiated) return;
+    final template = templateState.selectedTemplate;
+    if (template == null) return;
+    _initiated = true;
+    _startLiveEditing(
+      template,
+      templateState.selectedWebsiteType ?? WebsiteType.showcase,
+    );
+  }
+
+  Future<void> _startLiveEditing(
+    TemplateEntity template,
+    WebsiteType websiteType,
+  ) async {
+    final editorCubit = context.read<EditorCubit>();
+    final userId = context.read<AuthCubit>().state.user?.id;
+
+    if (widget.siteId == null) {
+      // Brand-new selection: render immediately from the template alone
+      // (no network dependency), then resolve the business id lazily —
+      // the first edit awaits it if it hasn't arrived yet (see
+      // EditorCubit.setOriginBusinessId / _persistDraftFirstTime).
+      editorCubit.beginFromTemplate(template: template, websiteType: websiteType);
+      if (userId == null) return;
+      try {
+        final business = await getIt<GetBusinessUseCase>().call(userId);
+        if (!mounted || business == null) return;
+        editorCubit.setBusiness(business);
+        editorCubit.setOriginBusinessId(business.id);
+      } catch (_) {
+        // Swallow: surfaced only if/when an edit actually needs it and the
+        // business id still hasn't resolved.
+      }
+      return;
+    }
+
+    // Changing template on an existing site (or reopening this screen on
+    // one) needs the real site from the network before there's anything
+    // to show, so this path doesn't get the synchronous first frame the
+    // Hero flight needs — it falls back to a plain loading state, which is
+    // an accepted scope trade-off for this secondary flow.
+    if (userId == null) {
+      editorCubit.setError('Utilisateur non connecte');
+      return;
+    }
+    try {
+      final business = await getIt<GetBusinessUseCase>().call(userId);
+      if (!mounted) return;
+      if (business == null) {
+        editorCubit.setError('Business introuvable');
+        return;
+      }
+      editorCubit.setBusiness(business);
+      final site = await getIt<GetSiteUseCase>().call(business.id);
+      if (!mounted) return;
+      if (site == null) {
+        editorCubit.setError('Site introuvable');
+        return;
+      }
+      editorCubit.beginFromExistingSite(
+        site,
+        newTemplate: template,
+        newWebsiteType: websiteType,
+      );
+    } catch (_) {
+      if (mounted) {
+        editorCubit.setError(
+          'Impossible de charger le site. Verifiez votre connexion et reessayez.',
+        );
+      }
+    }
+  }
+
+  /// Back arrow / hardware back: persist a pending edit if there is one,
+  /// but never create a draft just because the merchant opened and closed
+  /// this screen without touching anything.
+  Future<void> _leaveWithAutosave(BuildContext context) async {
+    await context.read<EditorCubit>().finishLiveEditing();
+    if (context.mounted) context.pop();
+  }
+
+  /// "Terminer": always finalizes the selection, then hands off to the
+  /// classic editor for detailed work (products, full section list) — the
+  /// same destination the old eager "Choisir ce modele" / "Appliquer ce
+  /// template" actions already used.
+  Future<void> _finishAndContinue(BuildContext context) async {
+    final cubit = context.read<EditorCubit>();
+    final site = await cubit.commitSelection();
+    if (!context.mounted) return;
+    if (cubit.state.status == EditorStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(cubit.state.error ??
+              'Impossible d\'enregistrer. Verifiez votre connexion.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    context.go('/editor/${site.id}');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TemplateCubit, TemplateState>(
-      builder: (context, state) {
-        final template = state.selectedTemplate;
-        if (template == null) {
-          return Scaffold(
-            appBar: AppBar(),
-            body: const Center(child: Text('Aucun template selectionne')),
-          );
-        }
-
-        final color = _parseColor(template.previewColor);
-
-        return Scaffold(
-          backgroundColor: AppColors.surface,
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
-            ),
-            title: Text(template.name),
-          ),
-          body: Column(
-            children: [
-              // Mock full-page preview
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: template.defaultSections.map((section) {
-                      return _MockSectionPreview(
-                        sectionType: section,
-                        accentColor: color,
-                        isEcommerce: state.selectedWebsiteType == WebsiteType.ecommerce,
-                      );
-                    }).toList(),
-                  ),
+    return BlocListener<TemplateCubit, TemplateState>(
+      listener: (context, templateState) => _maybeStart(templateState),
+      child: BlocBuilder<EditorCubit, EditorState>(
+        builder: (context, editorState) {
+          final template = context.watch<TemplateCubit>().state.selectedTemplate;
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              _leaveWithAutosave(context);
+            },
+            child: Scaffold(
+              backgroundColor: AppColors.surface,
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Retour',
+                  onPressed: () => _leaveWithAutosave(context),
                 ),
+                title: Text(template?.name ?? 'Modele'),
+                actions: [
+                  if (editorState.status == EditorStatus.saving)
+                    const Padding(
+                      padding: EdgeInsets.only(right: AppSpacing.lg),
+                      child: Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
+              body: _buildBody(context, editorState, template),
+              bottomNavigationBar: editorState.site == null
+                  ? null
+                  : _buildBottomBar(context, editorState),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-              // Bottom bar
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(
-                    top: BorderSide(color: AppColors.divider),
-                  ),
+  Widget _buildBody(
+    BuildContext context,
+    EditorState state,
+    TemplateEntity? template,
+  ) {
+    if (state.site == null) {
+      if (state.status == EditorStatus.error) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline,
+                    color: AppColors.error, size: 48),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  state.error ?? 'Une erreur est survenue.',
+                  style: AppTypography.body,
+                  textAlign: TextAlign.center,
                 ),
-                child: NumbiaButton(
-                  label: siteId != null
-                      ? 'Appliquer ce template'
-                      : 'Creer mon site avec ce template',
-                  onPressed: () => siteId != null
-                      ? _changeTemplate(context, state, siteId!)
-                      : _createSite(context, state),
+                const SizedBox(height: AppSpacing.lg),
+                NumbiaButton(
+                  label: 'Retour',
+                  variant: NumbiaButtonVariant.secondary,
+                  onPressed: () => context.pop(),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    final heroTag = template != null ? templateHeroTag(template.id) : null;
+    final preview = SitePreviewWidget(
+      site: state.site!,
+      products: state.products,
+      business: state.business,
+      editable: true,
+      onSectionChanged: (updated) =>
+          context.read<EditorCubit>().editSectionInline(updated),
+      onSectionReorder: (oldIndex, newIndex) => context
+          .read<EditorCubit>()
+          .reorderSectionsInline(oldIndex, newIndex),
+    );
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          color: AppColors.primaryLight,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.touch_app_outlined,
+                  size: 16, color: AppColors.primary),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  'Touchez un texte pour le modifier. Maintenez une '
+                  'section pour la deplacer.',
+                  style: AppTypography.caption
+                      .copyWith(color: AppColors.primaryDark),
                 ),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  Future<void> _changeTemplate(BuildContext context, TemplateState state, String siteId) async {
-    final template = state.selectedTemplate!;
-    final websiteType = state.selectedWebsiteType!;
-    final uuid = const Uuid();
-    final sections = template.defaultSections
-        .asMap()
-        .entries
-        .map((e) => SiteSection(
-              id: uuid.v4(),
-              type: e.value,
-              title: e.value.label,
-              content: '',
-              order: e.key,
-            ))
-        .toList();
-
-    final updated = await getIt<UpdateSiteUseCase>().call(SiteEntity(
-      id: siteId,
-      businessId: '',
-      templateId: template.id,
-      websiteType: websiteType,
-      sections: sections,
-      createdAt: DateTime.now(),
-    ));
-    if (context.mounted) {
-      context.go('/editor/${updated.id}');
-    }
-  }
-
-  Future<void> _createSite(BuildContext context, TemplateState state) async {
-    final template = state.selectedTemplate!;
-    final userId = context.read<AuthCubit>().state.user!.id;
-
-    final business = await getIt<GetBusinessUseCase>().call(userId);
-    if (business == null) return;
-
-    final created = await getIt<CreateSiteUseCase>().call(
-      businessId: business.id,
-      template: template,
-      websiteType: state.selectedWebsiteType!,
-    );
-    if (context.mounted) {
-      context.go('/editor/${created.id}');
-    }
-  }
-
-  Color _parseColor(String hex) {
-    final code = hex.replaceAll('#', '');
-    return Color(int.parse('FF$code', radix: 16));
-  }
-}
-
-/// Renders a mock visual block for a section type.
-class _MockSectionPreview extends StatelessWidget {
-  final SectionType sectionType;
-  final Color accentColor;
-  final bool isEcommerce;
-
-  const _MockSectionPreview({
-    required this.sectionType,
-    required this.accentColor,
-    required this.isEcommerce,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.xl,
-      ),
-      decoration: BoxDecoration(
-        color: _bgColor(),
-        border: const Border(
-          bottom: BorderSide(color: AppColors.divider),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section label
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: 2,
-            ),
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              sectionType.label,
-              style: AppTypography.caption.copyWith(
-                color: accentColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _buildContent(),
-        ],
-      ),
+        Expanded(
+          child: heroTag != null
+              ? Hero(tag: heroTag, child: preview)
+              : preview,
+        ),
+      ],
     );
   }
 
-  Color _bgColor() {
-    switch (sectionType) {
-      case SectionType.hero:
-        return isEcommerce ? accentColor : accentColor.withValues(alpha: 0.12);
-      case SectionType.footer:
-        return AppColors.neutralDark;
-      default:
-        return AppColors.surface;
-    }
-  }
-
-  Widget _buildContent() {
-    switch (sectionType) {
-      case SectionType.hero:
-        final barColor = isEcommerce
-            ? Colors.white.withValues(alpha: 0.5)
-            : AppColors.neutralDark.withValues(alpha: 0.15);
-        final subBarColor = isEcommerce
-            ? Colors.white.withValues(alpha: 0.35)
-            : AppColors.neutralMid.withValues(alpha: 0.15);
-        final btnColor = isEcommerce
-            ? Colors.white.withValues(alpha: 0.9)
-            : accentColor;
-        final btnTextColor = isEcommerce ? accentColor : Colors.white;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 20,
-              width: 200,
-              decoration: BoxDecoration(
-                color: barColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              height: 14,
-              width: 280,
-              decoration: BoxDecoration(
-                color: subBarColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              height: 36,
-              width: 120,
-              decoration: BoxDecoration(
-                color: btnColor,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              ),
-              alignment: Alignment.center,
-              child: Container(
-                height: 10,
-                width: 70,
-                decoration: BoxDecoration(
-                  color: btnTextColor.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ],
-        );
-
-      case SectionType.products:
-        return Row(
-          children: List.generate(
-            3,
-            (i) => Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.neutralLight,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: const Icon(Icons.shopping_bag_outlined,
-                    color: AppColors.neutralMid, size: 24),
-              ),
-            ),
-          ),
-        );
-
-      case SectionType.gallery:
-        return Row(
-          children: List.generate(
-            3,
-            (i) => Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                height: 60,
-                decoration: BoxDecoration(
-                  color: AppColors.neutralLight,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Icon(Icons.image_outlined,
-                    color: AppColors.neutralMid, size: 20),
-              ),
-            ),
-          ),
-        );
-
-      case SectionType.footer:
-        return Column(
-          children: [
-            Container(
-              height: 10,
-              width: 100,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              height: 8,
-              width: 160,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ],
-        );
-
-      default:
-        // Generic placeholder for other sections
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 14,
-              width: 180,
-              decoration: BoxDecoration(
-                color: AppColors.neutralMid.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              height: 10,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.neutralMid.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              height: 10,
-              width: 240,
-              decoration: BoxDecoration(
-                color: AppColors.neutralMid.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ],
-        );
-    }
+  Widget _buildBottomBar(BuildContext context, EditorState state) {
+    final isBusy = state.status == EditorStatus.saving;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.md + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.divider)),
+      ),
+      child: NumbiaButton(
+        label: 'Terminer',
+        icon: Icons.check_circle_outline,
+        isLoading: isBusy,
+        onPressed: isBusy ? null : () => _finishAndContinue(context),
+      ),
+    );
   }
 }

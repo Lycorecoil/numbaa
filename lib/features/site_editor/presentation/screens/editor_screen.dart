@@ -34,16 +34,51 @@ class EditorScreen extends StatelessWidget {
         if (site == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Editeur')),
-            body: const Center(child: Text('Site introuvable')),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: AppColors.error, size: 48),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      state.error ?? 'Site introuvable',
+                      style: AppTypography.body,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    NumbiaButton(
+                      label: 'Retour au tableau de bord',
+                      variant: NumbiaButtonVariant.secondary,
+                      onPressed: () => context.go('/dashboard'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
 
-        return Scaffold(
+        final isSaving = state.status == EditorStatus.saving;
+
+        return PopScope(
+          // Intercept the hardware/gesture back navigation too, so edits
+          // are saved the same way whether the user taps the app bar
+          // arrow or swipes/presses back.
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _saveAndLeave(context);
+          },
+          child: Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+              tooltip: 'Retour',
+              onPressed: () => _saveAndLeave(context),
             ),
             title: const Text('Editeur de site'),
             actions: [
@@ -53,16 +88,18 @@ class EditorScreen extends StatelessWidget {
                 onPressed: () => context.push('/website-type?siteId=$siteId'),
               ),
               IconButton(
-                icon: const Icon(Icons.save_outlined),
-                onPressed: () {
-                  context.read<EditorCubit>().saveSite();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Site sauvegarde'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                },
+                icon: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : const Icon(Icons.save_outlined),
+                tooltip: 'Sauvegarder',
+                onPressed: isSaving ? null : () => _saveWithFeedback(context),
               ),
             ],
           ),
@@ -101,8 +138,7 @@ class EditorScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  onReorder: (oldIndex, newIndex) {
-                    if (newIndex > oldIndex) newIndex--;
+                  onReorderItem: (oldIndex, newIndex) {
                     context
                         .read<EditorCubit>()
                         .reorderSections(oldIndex, newIndex);
@@ -113,9 +149,7 @@ class EditorScreen extends StatelessWidget {
                       key: ValueKey(section.id),
                       section: section,
                       onEdit: () => _editSection(context, section),
-                      onDelete: () => context
-                          .read<EditorCubit>()
-                          .removeSection(section.id),
+                      onDelete: () => _confirmDeleteSection(context, section),
                     );
                   },
                 ),
@@ -146,7 +180,7 @@ class EditorScreen extends StatelessWidget {
                         label: 'Ajouter',
                         variant: NumbiaButtonVariant.secondary,
                         icon: Icons.add,
-                        onPressed: () => _showAddSectionSheet(context),
+                        onPressed: () => _showAddSectionSheet(context, site),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -154,12 +188,7 @@ class EditorScreen extends StatelessWidget {
                       child: NumbiaButton(
                         label: 'Apercu',
                         icon: Icons.visibility_outlined,
-                        onPressed: () async {
-                          await context.read<EditorCubit>().saveSite();
-                          if (context.mounted) {
-                            context.push('/preview/$siteId');
-                          }
-                        },
+                        onPressed: () => _saveThenPreview(context),
                       ),
                     ),
                   ],
@@ -167,9 +196,82 @@ class EditorScreen extends StatelessWidget {
               ),
             ],
           ),
+          ),
         );
       },
     );
+  }
+
+  /// Persists pending edits before leaving the editor so changes made via
+  /// drag-reorder / add / edit sections are never silently lost.
+  Future<void> _saveAndLeave(BuildContext context) async {
+    await context.read<EditorCubit>().saveSite();
+    if (context.mounted) context.pop();
+  }
+
+  /// Saves and shows a snackbar that reflects the *actual* outcome, instead
+  /// of always claiming success regardless of what happened.
+  Future<void> _saveWithFeedback(BuildContext context) async {
+    final cubit = context.read<EditorCubit>();
+    await cubit.saveSite();
+    if (!context.mounted) return;
+    final failed = cubit.state.status == EditorStatus.error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(failed
+            ? (cubit.state.error ?? 'Erreur lors de la sauvegarde')
+            : 'Site sauvegarde'),
+        backgroundColor: failed ? AppColors.error : AppColors.success,
+      ),
+    );
+  }
+
+  /// Saves before opening the preview, and blocks navigation on failure so
+  /// the merchant never previews content that differs from what would
+  /// actually be published.
+  Future<void> _saveThenPreview(BuildContext context) async {
+    final cubit = context.read<EditorCubit>();
+    await cubit.saveSite();
+    if (!context.mounted) return;
+    if (cubit.state.status == EditorStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              cubit.state.error ?? 'Erreur lors de la sauvegarde. Reessayez.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    context.push('/preview/$siteId');
+  }
+
+  Future<void> _confirmDeleteSection(
+      BuildContext context, SiteSection section) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer cette section ?'),
+        content: Text(
+          '"${section.title.isNotEmpty ? section.title : section.type.label}" '
+          'sera retiree de votre site. Cette action est irreversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<EditorCubit>().removeSection(section.id);
+    }
   }
 
   void _editSection(BuildContext context, SiteSection section) {
@@ -191,7 +293,14 @@ class EditorScreen extends StatelessWidget {
     );
   }
 
-  void _showAddSectionSheet(BuildContext context) {
+  void _showAddSectionSheet(BuildContext context, SiteEntity site) {
+    // A merchant tapping around without understanding "sections" could
+    // otherwise add a second Hero or a second Footer, producing a visibly
+    // broken page (two banners, two footers stacked). Mark types already on
+    // the site as such and disable re-adding them, pointing back to the
+    // existing one instead.
+    final existingTypes = site.sections.map((s) => s.type).toSet();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -227,17 +336,77 @@ class EditorScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 controller: scrollCtrl,
-                children: SectionType.values
-                    .map((type) => ListTile(
-                          leading: Icon(_iconForSection(type),
-                              color: AppColors.primary),
-                          title: Text(type.label, style: AppTypography.body),
-                          onTap: () {
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                children: SectionType.values.map((type) {
+                  final alreadyAdded = existingTypes.contains(type);
+                  return ListTile(
+                    enabled: !alreadyAdded,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: alreadyAdded
+                            ? AppColors.neutralLight
+                            : AppColors.primaryLight,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusSm),
+                      ),
+                      child: Icon(
+                        _iconForSection(type),
+                        size: 20,
+                        color: alreadyAdded
+                            ? AppColors.neutralMid
+                            : AppColors.primary,
+                      ),
+                    ),
+                    title: Text(
+                      type.label,
+                      style: AppTypography.body.copyWith(
+                        color: alreadyAdded ? AppColors.neutralMid : null,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: alreadyAdded
+                        ? Text('Deja ajoutee — modifiez-la dans la liste',
+                            style: AppTypography.caption)
+                        : null,
+                    trailing: alreadyAdded
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.neutralLight,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.check,
+                                    size: 14, color: AppColors.neutralMid),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Ajoutee',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.neutralMid,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const Icon(Icons.add_circle_outline,
+                            size: 20, color: AppColors.primary),
+                    onTap: alreadyAdded
+                        ? null
+                        : () {
                             context.read<EditorCubit>().addSection(type);
                             Navigator.of(context).pop();
                           },
-                        ))
-                    .toList(),
+                  );
+                }).toList(),
               ),
             ),
           ],
@@ -281,31 +450,73 @@ class _SectionTile extends StatelessWidget {
     required this.onDelete,
   });
 
+  IconData _iconForType(SectionType type) {
+    switch (type) {
+      case SectionType.hero:
+        return Icons.flag_outlined;
+      case SectionType.about:
+        return Icons.info_outlined;
+      case SectionType.services:
+        return Icons.miscellaneous_services_outlined;
+      case SectionType.gallery:
+        return Icons.photo_library_outlined;
+      case SectionType.products:
+        return Icons.shopping_bag_outlined;
+      case SectionType.contact:
+        return Icons.contact_mail_outlined;
+      case SectionType.testimonials:
+        return Icons.format_quote_outlined;
+      case SectionType.footer:
+        return Icons.call_to_action_outlined;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: NumbiaCard(
+        onTap: onEdit,
         child: Row(
           children: [
-            const Icon(Icons.drag_handle, color: AppColors.primary, size: 26),
+            Icon(Icons.drag_handle, color: AppColors.neutralMid, size: 22),
+            const SizedBox(width: AppSpacing.xs),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Icon(_iconForType(section.type),
+                  size: 18, color: AppColors.primary),
+            ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(section.title, style: AppTypography.h3),
+                  Text(
+                    section.title.isNotEmpty
+                        ? section.title
+                        : section.type.label,
+                    style: AppTypography.h3,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   Text(section.type.label, style: AppTypography.caption),
                 ],
               ),
             ),
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
+              tooltip: 'Modifier la section',
               onPressed: onEdit,
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline,
                   size: 20, color: AppColors.error),
+              tooltip: 'Supprimer la section',
               onPressed: onDelete,
             ),
           ],
@@ -332,6 +543,7 @@ class _SectionEditSheet extends StatefulWidget {
 class _SectionEditSheetState extends State<_SectionEditSheet> {
   late TextEditingController _titleCtrl;
   late TextEditingController _contentCtrl;
+  String? _titleError;
 
   @override
   void initState() {
@@ -370,6 +582,14 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
             TextFormField(
               controller: _titleCtrl,
               style: AppTypography.body,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                errorText: _titleError,
+                hintText: 'Ex : ${widget.section.type.label}',
+              ),
+              onChanged: (_) {
+                if (_titleError != null) setState(() => _titleError = null);
+              },
             ),
             const SizedBox(height: AppSpacing.md),
 
@@ -379,6 +599,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
               controller: _contentCtrl,
               maxLines: 4,
               style: AppTypography.body,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 hintText: 'Texte de la section...',
               ),
@@ -388,9 +609,15 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
             NumbiaButton(
               label: 'Sauvegarder',
               onPressed: () {
+                final title = _titleCtrl.text.trim();
+                if (title.isEmpty) {
+                  setState(() =>
+                      _titleError = 'Le titre ne peut pas etre vide.');
+                  return;
+                }
                 widget.onSave(widget.section.copyWith(
-                  title: _titleCtrl.text,
-                  content: _contentCtrl.text,
+                  title: title,
+                  content: _contentCtrl.text.trim(),
                 ));
               },
             ),

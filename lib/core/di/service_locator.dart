@@ -34,6 +34,7 @@ import '../../domain/usecases/site/get_products_use_case.dart';
 import '../../domain/usecases/site/add_product_use_case.dart';
 import '../../domain/usecases/site/update_product_use_case.dart';
 import '../../domain/usecases/site/delete_product_use_case.dart';
+import '../../domain/usecases/site/upload_product_image_use_case.dart';
 // Template use cases
 import '../../domain/usecases/template/get_templates_by_type_use_case.dart';
 
@@ -80,6 +81,7 @@ void setupServiceLocator() {
   getIt.registerLazySingleton(() => AddProductUseCase(getIt<SiteRepository>()));
   getIt.registerLazySingleton(() => UpdateProductUseCase(getIt<SiteRepository>()));
   getIt.registerLazySingleton(() => DeleteProductUseCase(getIt<SiteRepository>()));
+  getIt.registerLazySingleton(() => UploadProductImageUseCase(getIt<SiteRepository>()));
 
   // Template use cases
   getIt.registerLazySingleton(() => GetTemplatesByTypeUseCase(getIt<TemplateRepository>()));

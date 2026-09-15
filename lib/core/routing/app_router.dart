@@ -9,14 +9,17 @@ import '../../domain/usecases/auth/verify_otp_use_case.dart';
 import '../../domain/usecases/business/get_business_use_case.dart';
 import '../../domain/usecases/business/save_business_use_case.dart';
 import '../../domain/usecases/business/upload_logo_use_case.dart';
+import '../../domain/entities/template_entity.dart';
 import '../../domain/usecases/plan/get_user_plan_use_case.dart';
 import '../../domain/usecases/site/add_product_use_case.dart';
+import '../../domain/usecases/site/create_site_use_case.dart';
 import '../../domain/usecases/site/delete_product_use_case.dart';
 import '../../domain/usecases/site/delete_site_use_case.dart';
 import '../../domain/usecases/site/get_products_use_case.dart';
 import '../../domain/usecases/site/get_site_use_case.dart';
 import '../../domain/usecases/site/update_product_use_case.dart';
 import '../../domain/usecases/site/update_site_use_case.dart';
+import '../../domain/usecases/site/upload_product_image_use_case.dart';
 import '../../domain/usecases/template/get_templates_by_type_use_case.dart';
 import '../../features/auth/presentation/cubits/auth_cubit.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -209,9 +212,42 @@ GoRouter buildRouter(AuthCubit authCubit) {
             (t) => t.name == typeName,
             orElse: () => WebsiteType.showcase,
           );
-          return BlocProvider(
-            create: (_) => TemplateCubit(getIt<GetTemplatesByTypeUseCase>())
-              ..initWithTemplate(websiteType, templateId),
+          // The catalog passes the already-loaded TemplateEntity via `extra`
+          // so this screen can render on its very first frame with zero
+          // network latency — required for the tap-to-fullscreen Hero
+          // animation to actually play (a Hero flight only happens if the
+          // destination's Hero-tagged content already exists in the tree
+          // when the push occurs; a spinner-first screen would skip it).
+          // Falls back to a normal fetch-by-id if `extra` isn't present
+          // (e.g. a future deep link).
+          final extraTemplate =
+              state.extra is TemplateEntity ? state.extra as TemplateEntity : null;
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider<TemplateCubit>(
+                create: (_) {
+                  final cubit =
+                      TemplateCubit(getIt<GetTemplatesByTypeUseCase>());
+                  if (extraTemplate != null) {
+                    cubit.selectDirect(websiteType, extraTemplate);
+                  } else {
+                    cubit.initWithTemplate(websiteType, templateId);
+                  }
+                  return cubit;
+                },
+              ),
+              BlocProvider<EditorCubit>(
+                create: (_) => EditorCubit(
+                  getProducts: getIt<GetProductsUseCase>(),
+                  addProduct: getIt<AddProductUseCase>(),
+                  updateProduct: getIt<UpdateProductUseCase>(),
+                  deleteProduct: getIt<DeleteProductUseCase>(),
+                  updateSite: getIt<UpdateSiteUseCase>(),
+                  uploadProductImage: getIt<UploadProductImageUseCase>(),
+                  createSite: getIt<CreateSiteUseCase>(),
+                ),
+              ),
+            ],
             child: TemplatePreviewScreen(siteId: siteId),
           );
         },
@@ -229,6 +265,8 @@ GoRouter buildRouter(AuthCubit authCubit) {
             updateProduct: getIt<UpdateProductUseCase>(),
             deleteProduct: getIt<DeleteProductUseCase>(),
             updateSite: getIt<UpdateSiteUseCase>(),
+            uploadProductImage: getIt<UploadProductImageUseCase>(),
+            createSite: getIt<CreateSiteUseCase>(),
           )
               ..loadSite(siteId),
             child: _EditorLoader(siteId: siteId),
@@ -248,6 +286,8 @@ GoRouter buildRouter(AuthCubit authCubit) {
             updateProduct: getIt<UpdateProductUseCase>(),
             deleteProduct: getIt<DeleteProductUseCase>(),
             updateSite: getIt<UpdateSiteUseCase>(),
+            uploadProductImage: getIt<UploadProductImageUseCase>(),
+            createSite: getIt<CreateSiteUseCase>(),
           )
               ..loadSite(siteId),
             child: _ProductManagerLoader(siteId: siteId),
@@ -267,6 +307,8 @@ GoRouter buildRouter(AuthCubit authCubit) {
             updateProduct: getIt<UpdateProductUseCase>(),
             deleteProduct: getIt<DeleteProductUseCase>(),
             updateSite: getIt<UpdateSiteUseCase>(),
+            uploadProductImage: getIt<UploadProductImageUseCase>(),
+            createSite: getIt<CreateSiteUseCase>(),
           )
               ..loadSite(siteId),
             child: _PreviewLoader(siteId: siteId),
@@ -286,6 +328,8 @@ GoRouter buildRouter(AuthCubit authCubit) {
             updateProduct: getIt<UpdateProductUseCase>(),
             deleteProduct: getIt<DeleteProductUseCase>(),
             updateSite: getIt<UpdateSiteUseCase>(),
+            uploadProductImage: getIt<UploadProductImageUseCase>(),
+            createSite: getIt<CreateSiteUseCase>(),
           )
               ..loadSite(siteId),
             child: _PublishLoader(siteId: siteId),
@@ -318,20 +362,31 @@ class _EditorLoaderState extends State<_EditorLoader> {
   Future<void> _loadSite() async {
     final user = context.read<AuthCubit>().state.user;
     if (user == null) {
-      if (mounted) context.read<EditorCubit>().setError('Utilisateur non connecte');
+      if (mounted) {
+        context.read<EditorCubit>().setError('Utilisateur non connecte');
+      }
       return;
     }
-    final business = await getIt<GetBusinessUseCase>().call(user.id);
-    if (business == null) {
-      if (mounted) context.read<EditorCubit>().setError('Business introuvable');
-      return;
-    }
-    final site = await getIt<GetSiteUseCase>().call(business.id);
-    if (!mounted) return;
-    if (site != null) {
-      context.read<EditorCubit>().loadSiteEntity(site);
-    } else {
-      context.read<EditorCubit>().setError('Site introuvable');
+    try {
+      final business = await getIt<GetBusinessUseCase>().call(user.id);
+      if (business == null) {
+        if (mounted) context.read<EditorCubit>().setError('Business introuvable');
+        return;
+      }
+      if (mounted) context.read<EditorCubit>().setBusiness(business);
+      final site = await getIt<GetSiteUseCase>().call(business.id);
+      if (!mounted) return;
+      if (site != null) {
+        context.read<EditorCubit>().loadSiteEntity(site);
+      } else {
+        context.read<EditorCubit>().setError('Site introuvable');
+      }
+    } catch (_) {
+      if (mounted) {
+        context.read<EditorCubit>().setError(
+              'Impossible de charger le site. Verifiez votre connexion et reessayez.',
+            );
+      }
     }
   }
 
@@ -356,14 +411,31 @@ class _ProductManagerLoaderState extends State<_ProductManagerLoader> {
 
   Future<void> _loadSite() async {
     final user = context.read<AuthCubit>().state.user;
-    if (user == null) return;
-    final business = await getIt<GetBusinessUseCase>().call(user.id);
-    if (business == null) return;
-    final site = await getIt<GetSiteUseCase>().call(business.id);
-    if (site != null && mounted) {
-      context.read<EditorCubit>().loadSiteEntity(site);
-    } else if (mounted) {
-      context.read<EditorCubit>().setError('Site introuvable');
+    if (user == null) {
+      if (mounted) {
+        context.read<EditorCubit>().setError('Utilisateur non connecte');
+      }
+      return;
+    }
+    try {
+      final business = await getIt<GetBusinessUseCase>().call(user.id);
+      if (business == null) {
+        if (mounted) context.read<EditorCubit>().setError('Business introuvable');
+        return;
+      }
+      if (mounted) context.read<EditorCubit>().setBusiness(business);
+      final site = await getIt<GetSiteUseCase>().call(business.id);
+      if (site != null && mounted) {
+        context.read<EditorCubit>().loadSiteEntity(site);
+      } else if (mounted) {
+        context.read<EditorCubit>().setError('Site introuvable');
+      }
+    } catch (_) {
+      if (mounted) {
+        context.read<EditorCubit>().setError(
+              'Impossible de charger le site. Verifiez votre connexion et reessayez.',
+            );
+      }
     }
   }
 
@@ -389,14 +461,31 @@ class _PreviewLoaderState extends State<_PreviewLoader> {
 
   Future<void> _loadSite() async {
     final user = context.read<AuthCubit>().state.user;
-    if (user == null) return;
-    final business = await getIt<GetBusinessUseCase>().call(user.id);
-    if (business == null) return;
-    final site = await getIt<GetSiteUseCase>().call(business.id);
-    if (site != null && mounted) {
-      context.read<EditorCubit>().loadSiteEntity(site);
-    } else if (mounted) {
-      context.read<EditorCubit>().setError('Site introuvable');
+    if (user == null) {
+      if (mounted) {
+        context.read<EditorCubit>().setError('Utilisateur non connecte');
+      }
+      return;
+    }
+    try {
+      final business = await getIt<GetBusinessUseCase>().call(user.id);
+      if (business == null) {
+        if (mounted) context.read<EditorCubit>().setError('Business introuvable');
+        return;
+      }
+      if (mounted) context.read<EditorCubit>().setBusiness(business);
+      final site = await getIt<GetSiteUseCase>().call(business.id);
+      if (site != null && mounted) {
+        context.read<EditorCubit>().loadSiteEntity(site);
+      } else if (mounted) {
+        context.read<EditorCubit>().setError('Site introuvable');
+      }
+    } catch (_) {
+      if (mounted) {
+        context.read<EditorCubit>().setError(
+              'Impossible de charger le site. Verifiez votre connexion et reessayez.',
+            );
+      }
     }
   }
 
@@ -421,14 +510,31 @@ class _PublishLoaderState extends State<_PublishLoader> {
 
   Future<void> _loadSite() async {
     final user = context.read<AuthCubit>().state.user;
-    if (user == null) return;
-    final business = await getIt<GetBusinessUseCase>().call(user.id);
-    if (business == null) return;
-    final site = await getIt<GetSiteUseCase>().call(business.id);
-    if (site != null && mounted) {
-      context.read<EditorCubit>().loadSiteEntity(site);
-    } else if (mounted) {
-      context.read<EditorCubit>().setError('Site introuvable');
+    if (user == null) {
+      if (mounted) {
+        context.read<EditorCubit>().setError('Utilisateur non connecte');
+      }
+      return;
+    }
+    try {
+      final business = await getIt<GetBusinessUseCase>().call(user.id);
+      if (business == null) {
+        if (mounted) context.read<EditorCubit>().setError('Business introuvable');
+        return;
+      }
+      if (mounted) context.read<EditorCubit>().setBusiness(business);
+      final site = await getIt<GetSiteUseCase>().call(business.id);
+      if (site != null && mounted) {
+        context.read<EditorCubit>().loadSiteEntity(site);
+      } else if (mounted) {
+        context.read<EditorCubit>().setError('Site introuvable');
+      }
+    } catch (_) {
+      if (mounted) {
+        context.read<EditorCubit>().setError(
+              'Impossible de charger le site. Verifiez votre connexion et reessayez.',
+            );
+      }
     }
   }
 

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../domain/entities/product_entity.dart';
 import '../../../../domain/entities/site_entity.dart';
 import '../../../../domain/entities/template_entity.dart';
+import '../../../../shared/widgets/card_swipe_stack.dart';
 import '../../../../shared/widgets/numbia_button.dart';
 import '../../../../shared/widgets/site_preview_widget.dart';
 import '../cubits/template_cubit.dart';
@@ -22,14 +23,8 @@ class TemplateCatalogScreen extends StatefulWidget {
 }
 
 class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
-  final _pageController = PageController();
   int _currentPage = 0;
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+  final _stackKey = GlobalKey<CardSwipeStackState>();
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +38,7 @@ class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
             foregroundColor: Colors.white,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
+              tooltip: 'Retour',
               onPressed: () => context.pop(),
             ),
             title: const Text('Choisissez votre modele'),
@@ -50,50 +46,87 @@ class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
           body: state.status == TemplateStatus.loading
               ? const Center(
                   child: CircularProgressIndicator(color: AppColors.primary))
-              : templates.isEmpty
+              : state.status == TemplateStatus.error
                   ? Center(
-                      child: Text(
-                        'Aucun modele disponible',
-                        style: AppTypography.body
-                            .copyWith(color: Colors.white54),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: AppColors.error, size: 48),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'Impossible de charger les modeles. Verifiez votre connexion.',
+                              style: AppTypography.body
+                                  .copyWith(color: Colors.white70),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            NumbiaButton(
+                              label: 'Reessayer',
+                              onPressed: () => context
+                                  .read<TemplateCubit>()
+                                  .loadTemplates(state.selectedWebsiteType ??
+                                      WebsiteType.showcase),
+                            ),
+                          ],
+                        ),
                       ),
                     )
-                  : Column(
+                  : templates.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Aucun modele disponible',
+                            style: AppTypography.body
+                                .copyWith(color: Colors.white54),
+                          ),
+                        )
+                      : Column(
                       children: [
                         Expanded(
-                          child: PageView.builder(
-                            controller: _pageController,
-                            itemCount: templates.length,
-                            onPageChanged: (i) {
-                              setState(() => _currentPage = i);
-                              context
-                                  .read<TemplateCubit>()
-                                  .selectTemplate(templates[i]);
-                            },
-                            itemBuilder: (context, index) {
-                              final template = templates[index];
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                  vertical: AppSpacing.md,
-                                ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surface,
-                                    borderRadius: BorderRadius.circular(
-                                        AppSpacing.radiusMd),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.md,
+                            ),
+                            child: CardSwipeStack(
+                              key: _stackKey,
+                              itemCount: templates.length,
+                              initialIndex: _currentPage,
+                              onIndexChanged: (i) {
+                                setState(() => _currentPage = i);
+                                context
+                                    .read<TemplateCubit>()
+                                    .selectTemplate(templates[i]);
+                              },
+                              onCardTap: (i) => _openFullscreenEditor(
+                                context,
+                                templates[i],
+                                state.selectedWebsiteType!,
+                              ),
+                              cardBuilder: (context, index) {
+                                final template = templates[index];
+                                return _TemplatePosterCard(
+                                  heroTag: templateHeroTag(template.id),
+                                  // Purely a visual thumbnail here: swallow all
+                                  // pointer events inside it (the preview's own
+                                  // product carousel included) so a swipe never
+                                  // gets stolen from the outer CardSwipeStack —
+                                  // only that outer stack should ever move on
+                                  // this screen.
+                                  child: IgnorePointer(
+                                    child: SitePreviewWidget(
+                                      site: _buildMockSite(template),
+                                      products: template.websiteType ==
+                                              WebsiteType.ecommerce
+                                          ? _mockProducts
+                                          : const [],
+                                    ),
                                   ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: SitePreviewWidget(
-                                    site: _buildMockSite(template),
-                                    products: template.websiteType ==
-                                            WebsiteType.ecommerce
-                                        ? _mockProducts
-                                        : const [],
-                                  ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
                         ),
                         Container(
@@ -110,19 +143,28 @@ class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: List.generate(
                                   templates.length,
-                                  (i) => AnimatedContainer(
-                                    duration:
-                                        const Duration(milliseconds: 200),
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 3),
-                                    width: i == _currentPage ? 20 : 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: i == _currentPage
-                                          ? AppColors.primary
-                                          : Colors.white38,
-                                      borderRadius:
-                                          BorderRadius.circular(4),
+                                  (i) => GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () =>
+                                        _stackKey.currentState?.goTo(i),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: AppSpacing.sm),
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 200),
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 3),
+                                        width: i == _currentPage ? 20 : 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: i == _currentPage
+                                              ? AppColors.primary
+                                              : Colors.white38,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -133,15 +175,27 @@ class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
                                 style: AppTypography.h3
                                     .copyWith(color: Colors.white),
                               ),
+                              if (templates[_currentPage]
+                                  .description
+                                  .isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  templates[_currentPage].description,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.bodySmall
+                                      .copyWith(color: Colors.white54),
+                                ),
+                              ],
                               const SizedBox(height: AppSpacing.md),
                               NumbiaButton(
                                 label: 'Choisir ce modele',
-                                onPressed: () {
-                                  final template = templates[_currentPage];
-                                  context.push(
-                                    '/template-preview?type=${state.selectedWebsiteType!.name}&templateId=${template.id}${widget.siteId != null ? '&siteId=${widget.siteId}' : ''}',
-                                  );
-                                },
+                                onPressed: () => _openFullscreenEditor(
+                                  context,
+                                  templates[_currentPage],
+                                  state.selectedWebsiteType!,
+                                ),
                               ),
                             ],
                           ),
@@ -150,6 +204,23 @@ class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
                     ),
         );
       },
+    );
+  }
+
+  /// Pushes the fullscreen live template editor. The tapped/selected
+  /// template is passed via `extra` (not just the `templateId` query
+  /// param) so the destination screen can render synchronously on its
+  /// first frame — required for the Hero "card expands to fullscreen"
+  /// transition to actually play.
+  void _openFullscreenEditor(
+    BuildContext context,
+    TemplateEntity template,
+    WebsiteType websiteType,
+  ) {
+    context.push(
+      '/template-preview?type=${websiteType.name}&templateId=${template.id}'
+      '${widget.siteId != null ? '&siteId=${widget.siteId}' : ''}',
+      extra: template,
     );
   }
 
@@ -240,4 +311,50 @@ class _TemplateCatalogScreenState extends State<TemplateCatalogScreen> {
       category: 'Bijoux',
     ),
   ];
+}
+
+/// Hero tag shared with the fullscreen live editor (see
+/// TemplatePreviewScreen) so tapping a card grows it into that screen
+/// instead of a plain page transition.
+String templateHeroTag(String templateId) => 'template-poster-$templateId';
+
+/// Wraps a template preview in a floating "poster" shell — deep shadow,
+/// generous rounded corners — so it reads as a physical card in the swipe
+/// stack rather than a plain rectangle of content.
+///
+/// The shadow/rounded-corner "frame" deliberately sits *outside* the [Hero]
+/// so only the plain, unradiused preview content is what actually flies
+/// during the transition — Hero doesn't interpolate decoration (radius,
+/// shadow) over the flight, so animating the frame too would make the
+/// corners "pop" square mid-flight. Keeping the frame out of the Hero
+/// avoids that glitch for free: it simply stays behind as the pushed route
+/// covers it.
+class _TemplatePosterCard extends StatelessWidget {
+  final Widget child;
+  final String heroTag;
+  const _TemplatePosterCard({required this.child, required this.heroTag});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 32,
+            offset: const Offset(0, 18),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Hero(tag: heroTag, child: child),
+    );
+  }
 }

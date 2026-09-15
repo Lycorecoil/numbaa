@@ -50,4 +50,20 @@ class TemplateCubit extends Cubit<TemplateState> {
   void selectTemplate(TemplateEntity template) {
     emit(state.copyWith(selectedTemplate: template));
   }
+
+  /// Selects a template immediately, without any network fetch — used when
+  /// the caller already has the full [TemplateEntity] in hand (passed via
+  /// go_router's `extra` from the catalog card that was tapped). This lets
+  /// the fullscreen template editor render on its very first frame instead
+  /// of showing a loading spinner first, which matters specifically because
+  /// the tap-to-fullscreen Hero animation only plays if the destination's
+  /// Hero-tagged content already exists in the tree when the push happens.
+  void selectDirect(WebsiteType type, TemplateEntity template) {
+    emit(state.copyWith(
+      status: TemplateStatus.loaded,
+      selectedWebsiteType: type,
+      templates: [template],
+      selectedTemplate: template,
+    ));
+  }
 }

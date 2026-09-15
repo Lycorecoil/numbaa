@@ -14,4 +14,9 @@ abstract class SiteRepository {
   Future<ProductEntity> updateProduct(ProductEntity product);
   Future<void> deleteSite(String siteId);
   Future<void> deleteProduct(String siteId, String productId);
+
+  /// Uploads a photo for an existing product (the product must already be
+  /// saved server-side, since the endpoint attaches the image by id).
+  /// Returns the relative image URL to store on the product.
+  Future<String> uploadProductImage(String siteId, String productId, String filePath);
 }

@@ -19,20 +19,31 @@ class NumbiaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: padding,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryLight : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.divider,
-            width: selected ? 2 : 1,
-          ),
+    final radius = BorderRadius.circular(AppSpacing.radiusMd);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primaryLight : AppColors.surface,
+        borderRadius: radius,
+        border: Border.all(
+          color: selected ? AppColors.primary : AppColors.divider,
+          width: selected ? 2 : 1,
         ),
-        child: child,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          // Give a visible, but not too strong, tactile response to a tap
+          // (Material state-layer feedback) without adding any extra
+          // dependency — plain Material/InkWell already provides this.
+          splashColor: AppColors.primary.withValues(alpha: 0.08),
+          highlightColor: AppColors.primary.withValues(alpha: 0.04),
+          child: Padding(padding: padding, child: child),
+        ),
       ),
     );
   }

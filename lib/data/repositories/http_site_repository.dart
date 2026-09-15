@@ -70,6 +70,16 @@ class HttpSiteRepository implements SiteRepository {
     await _api.delete('/sites/$siteId/products/$productId');
   }
 
+  @override
+  Future<String> uploadProductImage(String siteId, String productId, String filePath) async {
+    final res = await _api.postFile(
+      '/sites/$siteId/products/$productId/image',
+      'image',
+      filePath,
+    );
+    return res['imageUrl'] as String;
+  }
+
   // --- Serialization ---
 
   Map<String, dynamic> _siteToMap(SiteEntity s) => {

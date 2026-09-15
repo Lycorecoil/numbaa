@@ -33,6 +33,21 @@ class ApiClient {
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
 
+  /// Turns a server-relative media path (e.g. the `/uploads/xyz.jpg` returned
+  /// by the product/logo upload endpoints) into an absolute URL the app can
+  /// load with `Image.network`. Already-absolute URLs are returned as-is.
+  /// Without this, a bare "/uploads/..." path is not a valid URI on its own
+  /// and every uploaded photo would silently fail to display in the app.
+  String resolveMediaUrl(String pathOrUrl) {
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return pathOrUrl;
+    }
+    final apiUri = Uri.parse(baseUrl);
+    final origin = Uri(scheme: apiUri.scheme, host: apiUri.host, port: apiUri.port)
+        .toString();
+    return pathOrUrl.startsWith('/') ? '$origin$pathOrUrl' : '$origin/$pathOrUrl';
+  }
+
   Map<String, dynamic> _parse(http.Response res) {
     final body = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode >= 400) {

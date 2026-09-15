@@ -122,6 +122,24 @@ class MockSiteRepository implements SiteRepository {
     await prefs.setString(_productsKey, jsonEncode(products));
   }
 
+  @override
+  Future<String> uploadProductImage(String siteId, String productId, String filePath) async {
+    // No real backend in mock mode — persist the local file path directly
+    // so the picked photo still shows up in the offline preview.
+    final prefs = await SharedPreferences.getInstance();
+    final dataJson = prefs.getString(_productsKey);
+    if (dataJson != null) {
+      final products = Map<String, dynamic>.from(jsonDecode(dataJson));
+      final entry = products[productId];
+      if (entry != null) {
+        entry['imagePath'] = filePath;
+        products[productId] = entry;
+        await prefs.setString(_productsKey, jsonEncode(products));
+      }
+    }
+    return filePath;
+  }
+
   // --- Serialization helpers ---
 
   Map<String, dynamic> _siteToMap(SiteEntity s) => {

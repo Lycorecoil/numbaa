@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import path from 'path';
-import { env } from '../../config/env';
+import { uploadImageToBlob } from '../../storage/blob.storage';
 import * as svc from './business.service';
 
 function formatBusiness(b: svc.BusinessRow) {
@@ -70,7 +69,7 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 export async function uploadLogo(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.file) { res.status(400).json({ success: false, message: 'Aucun fichier fourni.' }); return; }
-    const logoUrl = `/uploads/${path.basename(req.file.path)}`;
+    const logoUrl = await uploadImageToBlob('logos', req.user!.id, req.file);
     await svc.updateLogo(req.user!.id, logoUrl);
     res.json({ success: true, logoUrl });
   } catch (err) { next(err); }

@@ -70,7 +70,9 @@ whatsapp/
   otp.service.ts      # generateAndSendOtp() + verifyOtp() — Redis TTL 300s, max 3 tentatives
 middlewares/
   auth.middleware.ts  # JWT verify + session Redis, generateToken()
-  upload.middleware.ts # multer JPG/PNG/WEBP
+  upload.middleware.ts # multer JPG/PNG/WEBP, memoryStorage (buffer en RAM, jamais écrit sur disque)
+storage/
+  blob.storage.ts # uploadImageToBlob(folder, id, file) → upload sur Vercel Blob, retourne l'URL publique absolue
 modules/
   auth/     # POST /request-otp, POST /verify-otp, POST /logout, GET /me, PATCH /onboarding
   business/ # GET|POST|PUT / + POST /logo
@@ -106,7 +108,7 @@ REDIS_URL=redis://localhost:6379
 JWT_SECRET=<32 chars min>
 JWT_EXPIRY=7d
 VERCEL_TOKEN=<vercel api token>
-UPLOAD_DIR=uploads
+BLOB_READ_WRITE_TOKEN=<vercel blob rw token>
 MAX_FILE_SIZE=5242880
 PORT=3000
 ```
@@ -155,8 +157,7 @@ Au premier démarrage, Baileys affiche un QR code dans le terminal. Scanne-le av
    - Configurer les variables d'env en production
    - Remplacer `http://10.0.2.2:3000` par l'URL réelle dans `lib/core/di/service_locator.dart`
 
-2. **Upload de fichiers en production** — actuellement multer stocke en local (`uploads/`)
-   - Envisager Cloudinary ou S3 pour les logos et images produits
+2. ~~**Upload de fichiers en production**~~ — fait : logos et photos produit sont uploadés sur Vercel Blob (`backend/src/storage/blob.storage.ts`), `logo_url`/`image_url` stockent une URL absolue `https://*.public.blob.vercel-storage.com/...`. Nécessite que `BLOB_READ_WRITE_TOKEN` soit configuré (voir section env ci-dessus).
 
 3. **Tests end-to-end** — scénario complet :
    - `requestOtp(phone)` → message WhatsApp reçu

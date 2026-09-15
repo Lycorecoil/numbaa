@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import path from 'path';
 import * as svc from './product.service';
 import { assertSiteOwner } from '../site/site.service';
+import { uploadImageToBlob } from '../../storage/blob.storage';
 
 function fmt(p: svc.ProductRow) {
   return {
@@ -62,7 +62,7 @@ export async function uploadImage(req: Request, res: Response, next: NextFunctio
   try {
     await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
     if (!req.file) { res.status(400).json({ success: false, message: 'Aucun fichier fourni.' }); return; }
-    const imageUrl = `/uploads/${path.basename(req.file.path)}`;
+    const imageUrl = await uploadImageToBlob('products', req.params['productId'] as string, req.file);
     await svc.updateImage(req.params['productId'] as string, imageUrl);
     res.json({ success: true, imageUrl });
   } catch (err) { next(err); }

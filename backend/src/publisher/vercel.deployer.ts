@@ -21,11 +21,18 @@ export async function deployToVercel(businessId: string, businessName: string, h
     target: 'production',
   });
 
+  // The "numbaa" project (and every deployment it creates) lives under a
+  // Vercel team, not a personal scope — omitting teamId here makes the API
+  // reject the request with 403 "Not authorized" even with a valid token.
+  const path = env.VERCEL_TEAM_ID
+    ? `/v13/deployments?teamId=${encodeURIComponent(env.VERCEL_TEAM_ID)}`
+    : '/v13/deployments';
+
   return new Promise((resolve, reject) => {
     const req = https.request(
       {
         hostname: 'api.vercel.com',
-        path: '/v13/deployments',
+        path,
         method: 'POST',
         headers: {
           Authorization: `Bearer ${env.VERCEL_TOKEN}`,

@@ -76,3 +76,12 @@ It checks real successful commits, creation failure with zero persisted sites/se
 - Valid routes and JSON response fields are preserved. Deleting an absent/cross-site product now explicitly returns 404 rather than unconditional success.
 - Human review should confirm the deployed schema retains migration 001's cascading foreign keys and validate the 401/403/404 behavior with real authenticated sessions.
 - No production deployment or merge was performed. All commits are restricted to the work branch; main remains at the base SHA.
+
+## Publication and external blocker
+
+- Implementation commit: `f618fcbde14e8984f2eae3ae3dbf22b7442ebeb8`.
+- `git push -u origin fix/builder-security-p0` succeeded; branch published and tracking origin.
+- GitHub connector PR creation was attempted with the requested title, head and base, including validation evidence and remaining risks. GitHub returned **403 Resource not accessible by integration**. No PR was created by this attempt; no restriction was bypassed.
+- Remaining action: an authorized user/integration must open the PR from `fix/builder-security-p0` to `main`: https://github.com/Lycorecoil/numbaa/compare/main...fix/builder-security-p0?expand=1
+- Requested PR title: `fix(P0): secure builder ownership, product isolation and DB transactions`.
+- The complete description submitted with the failed request covered SEC-01, SEC-02, DATA-01, all nine files, actual test outcomes and the review points above. This report can be used to prepare the PR manually.

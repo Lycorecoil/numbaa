@@ -1,4 +1,4 @@
-import { Pool, QueryResult, QueryResultRow } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { env } from './env';
 
 const isServerless = process.env.VERCEL === '1';
@@ -35,3 +35,25 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
 }
 
 export { pool };
+
+// All statements in a transaction must use this client's query, never pool.query.
+export async function withTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  let discard = false;
+  try {
+    await client.query('BEGIN');
+    const result = await work(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // A connection that cannot roll back must not return to the pool.
+      discard = true;
+    }
+    throw error;
+  } finally {
+    client.release(discard);
+  }
+}

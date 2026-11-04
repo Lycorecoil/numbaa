@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
+    "test": "npm run build && node --test tests/*.test.cjs",
     "start": "node dist/app.js",
     "db:migrate": "ts-node src/db/migrate.ts",
     "db:seed": "ts-node src/db/seeds/templates.seed.ts"

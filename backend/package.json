@@ -31,6 +31,14 @@
     "qrcode-terminal": "^0.12.0",
     "uuid": "^11.0.3"
   },
+  "overrides": {
+    "express": {
+      "qs": "6.16.2"
+    },
+    "@vercel/oidc": {
+      "@vercel/cli-config": "0.3.6"
+    }
+  },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

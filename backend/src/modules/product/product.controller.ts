@@ -42,7 +42,7 @@ export async function update(req: Request, res: Response, next: NextFunction): P
   try {
     await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
     const { name, description, price, category } = req.body;
-    const product = await svc.update(req.params['productId'] as string, {
+    const product = await svc.update(req.params['siteId'] as string, req.params['productId'] as string, {
       name, description, price: price !== undefined ? Number(price) : undefined, category,
     });
     if (!product) { res.status(404).json({ success: false, message: 'Produit introuvable.' }); return; }
@@ -53,7 +53,8 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
-    await svc.remove(req.params['productId'] as string);
+    const removed = await svc.remove(req.params['siteId'] as string, req.params['productId'] as string);
+    if (!removed) { res.status(404).json({ success: false, message: 'Produit introuvable.' }); return; }
     res.json({ success: true });
   } catch (err) { next(err); }
 }
@@ -61,9 +62,14 @@ export async function remove(req: Request, res: Response, next: NextFunction): P
 export async function uploadImage(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     await assertSiteOwner(req.params['siteId'] as string, req.user!.id);
+    const siteId = req.params['siteId'] as string;
+    const productId = req.params['productId'] as string;
+    const product = await svc.getById(siteId, productId);
+    if (!product) { res.status(404).json({ success: false, message: 'Produit introuvable.' }); return; }
     if (!req.file) { res.status(400).json({ success: false, message: 'Aucun fichier fourni.' }); return; }
     const imageUrl = await uploadImageToBlob('products', req.params['productId'] as string, req.file);
-    await svc.updateImage(req.params['productId'] as string, imageUrl);
+    const updated = await svc.updateImage(siteId, productId, imageUrl);
+    if (!updated) { res.status(404).json({ success: false, message: 'Produit introuvable.' }); return; }
     res.json({ success: true, imageUrl });
   } catch (err) { next(err); }
 }

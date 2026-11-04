@@ -44,8 +44,12 @@ export async function getByBusiness(req: Request, res: Response, next: NextFunct
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: 'Authentification requise.' });
+      return;
+    }
     const { businessId, templateId, websiteType, sections } = req.body;
-    const site = await svc.create({ businessId, templateId, websiteType, sections: sections ?? [] });
+    const site = await svc.create(req.user.id, { businessId, templateId, websiteType, sections: sections ?? [] });
     res.status(201).json({ success: true, site: formatSite(site) });
   } catch (err) { next(err); }
 }

@@ -24,7 +24,12 @@ export async function create(data: Omit<ProductRow, 'id'>): Promise<ProductRow> 
   return r.rows[0];
 }
 
-export async function update(productId: string, data: Partial<ProductRow>): Promise<ProductRow | null> {
+export async function getById(siteId: string, productId: string): Promise<ProductRow | null> {
+  const r = await query<ProductRow>('SELECT * FROM products WHERE id = $1 AND site_id = $2', [productId, siteId]);
+  return r.rows[0] ?? null;
+}
+
+export async function update(siteId: string, productId: string, data: Partial<ProductRow>): Promise<ProductRow | null> {
   const r = await query<ProductRow>(
     `UPDATE products SET
        name = COALESCE($2, name),
@@ -32,16 +37,18 @@ export async function update(productId: string, data: Partial<ProductRow>): Prom
        price = COALESCE($4, price),
        image_url = COALESCE($5, image_url),
        category = COALESCE($6, category)
-     WHERE id = $1 RETURNING *`,
-    [productId, data.name, data.description, data.price, data.image_url, data.category]
+     WHERE id = $1 AND site_id = $7 RETURNING *`,
+    [productId, data.name, data.description, data.price, data.image_url, data.category, siteId]
   );
   return r.rows[0] ?? null;
 }
 
-export async function remove(productId: string): Promise<void> {
-  await query('DELETE FROM products WHERE id = $1', [productId]);
+export async function remove(siteId: string, productId: string): Promise<boolean> {
+  const r = await query('DELETE FROM products WHERE id = $1 AND site_id = $2', [productId, siteId]);
+  return (r.rowCount ?? 0) > 0;
 }
 
-export async function updateImage(productId: string, imageUrl: string): Promise<void> {
-  await query('UPDATE products SET image_url = $2 WHERE id = $1', [productId, imageUrl]);
+export async function updateImage(siteId: string, productId: string, imageUrl: string): Promise<boolean> {
+  const r = await query('UPDATE products SET image_url = $2 WHERE id = $1 AND site_id = $3', [productId, imageUrl, siteId]);
+  return (r.rowCount ?? 0) > 0;
 }

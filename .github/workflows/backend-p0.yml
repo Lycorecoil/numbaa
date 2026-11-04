@@ -1,0 +1,78 @@
+name: Backend P0 security validation
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-p0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: TypeScript + unit + PostgreSQL integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: numbaa_p0_test
+          POSTGRES_USER: numbaa_test
+          POSTGRES_PASSWORD: temporary_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U numbaa_test -d numbaa_p0_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      TEST_DATABASE_URL: postgresql://numbaa_test:temporary_ci_password@localhost:5432/numbaa_p0_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Compile and run tests including PostgreSQL
+        run: npm test
+
+  dependency-audit:
+    name: Dependency audit report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Collect audit JSON (existing vulnerabilities are tracked separately)
+        shell: bash
+        run: |
+          npm audit --json > audit-p0.json || true
+          node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync("audit-p0.json","utf8")); if(!d.metadata?.vulnerabilities) process.exit(1); console.log(d.metadata.vulnerabilities)'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-p0-npm-audit
+          path: backend/audit-p0.json
+          if-no-files-found: error
